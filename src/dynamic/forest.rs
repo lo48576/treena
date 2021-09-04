@@ -24,6 +24,17 @@ pub struct Forest<T> {
 
 impl<T> Forest<T> {
     /// Creates a new empty forest.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use treena::dynamic::Forest;
+    ///
+    /// let mut forest = Forest::new();
+    ///
+    /// let id = forest.create_root(42);
+    /// assert_eq!(forest.data(id).copied(), Some(42));
+    /// ```
     #[inline]
     #[must_use]
     pub fn new() -> Self {
@@ -38,7 +49,26 @@ impl<T> Forest<T> {
             .map_or(false, |entry| entry.is_some())
     }
 
-    /// Returns a proxy object to the node.
+    /// Returns a [proxy object][`Node`] to the node.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use treena::dynamic::Forest;
+    ///
+    /// let mut forest = Forest::new();
+    /// let id = forest.create_root(42);
+    ///
+    /// let node = forest.node(id).expect("should never fail: node exists");
+    ///
+    /// // Can access the associated data.
+    /// assert_eq!(*node.data(), 42);
+    /// // Can access the neighbors data.
+    /// assert!(
+    ///     node.parent_id().is_none(),
+    ///     "the root node does not have a parent"
+    /// );
+    /// ```
     #[inline]
     #[must_use]
     pub fn node(&self, id: NodeId) -> Option<Node<'_, T>> {
@@ -46,6 +76,17 @@ impl<T> Forest<T> {
     }
 
     /// Returns a reference to the data associated to the node.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use treena::dynamic::Forest;
+    ///
+    /// let mut forest = Forest::new();
+    /// let id = forest.create_root(42);
+    ///
+    /// assert_eq!(forest.data(id).copied(), Some(42));
+    /// ```
     #[inline]
     #[must_use]
     pub fn data(&self, id: NodeId) -> Option<&T> {
@@ -53,6 +94,20 @@ impl<T> Forest<T> {
     }
 
     /// Returns a reference to the data associated to the node.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use treena::dynamic::Forest;
+    ///
+    /// let mut forest = Forest::new();
+    /// let id = forest.create_root(42);
+    /// assert_eq!(forest.data(id).copied(), Some(42));
+    ///
+    /// *forest.data_mut(id).expect("should never fail: node exists") = 314;
+    ///
+    /// assert_eq!(forest.data(id).copied(), Some(314));
+    /// ```
     #[inline]
     #[must_use]
     pub fn data_mut(&mut self, id: NodeId) -> Option<&mut T> {
@@ -89,6 +144,40 @@ impl<T: Clone> Forest<T> {
     ///         .parent_id()
     ///         .is_none(),
     ///     "the root node does not have a parent"
+    /// );
+    /// ```
+    ///
+    /// The newly added root node has no connections between other trees.
+    ///
+    /// ```
+    /// use treena::dynamic::Forest;
+    ///
+    /// let mut forest = Forest::new();
+    /// let another_root = forest.create_root(42);
+    ///
+    /// let root = forest.create_root(314);
+    ///
+    /// let root_node = forest.node(root).expect("should never fail: node exists");
+    /// assert_eq!(*root_node.data(), 314);
+    /// assert!(
+    ///     root_node.parent_id().is_none(),
+    ///     "the root node does not have a parent"
+    /// );
+    /// assert!(
+    ///     root_node.next_sibling_id().is_none(),
+    ///     "the root node does not have siblings"
+    /// );
+    /// assert!(
+    ///     root_node.prev_sibling_id().is_none(),
+    ///     "the root node does not have siblings"
+    /// );
+    /// assert!(
+    ///     root_node.first_child_id().is_none(),
+    ///     "the root node does not have children"
+    /// );
+    /// assert!(
+    ///     root_node.last_child_id().is_none(),
+    ///     "the root node does not have children"
     /// );
     /// ```
     pub fn create_root(&mut self, data: T) -> NodeId {
