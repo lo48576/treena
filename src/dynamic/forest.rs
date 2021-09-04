@@ -1,7 +1,11 @@
 //! Forest.
 
-use crate::dynamic::hierarchy::Hierarchy;
+mod node;
+
+use crate::dynamic::hierarchy::{Hierarchy, Neighbors};
 use crate::dynamic::id::NodeId;
+
+pub use self::node::Node;
 
 /// Forest.
 #[derive(Debug, Clone)]
@@ -26,6 +30,21 @@ impl<T> Forest<T> {
         Self::default()
     }
 
+    /// Returns true if the node exists and is not yet removed.
+    #[must_use]
+    fn is_alive(&self, id: NodeId) -> bool {
+        self.data
+            .get(id.get())
+            .map_or(false, |entry| entry.is_some())
+    }
+
+    /// Returns a proxy object to the node.
+    #[inline]
+    #[must_use]
+    pub fn node(&self, id: NodeId) -> Option<Node<'_, T>> {
+        Node::new(self, id)
+    }
+
     /// Returns a reference to the data associated to the node.
     #[inline]
     #[must_use]
@@ -38,6 +57,13 @@ impl<T> Forest<T> {
     #[must_use]
     pub fn data_mut(&mut self, id: NodeId) -> Option<&mut T> {
         self.data.get_mut(id.get()).and_then(|entry| entry.as_mut())
+    }
+
+    /// Returns a reference to the neighbors data associated to the node.
+    #[inline]
+    #[must_use]
+    fn neighbors(&self, id: NodeId) -> Option<&Neighbors> {
+        self.hierarchy.neighbors(id)
     }
 }
 
@@ -56,6 +82,14 @@ impl<T: Clone> Forest<T> {
     /// let mut forest = Forest::new();
     /// let id = forest.create_root(42);
     /// assert_eq!(forest.data(id).copied(), Some(42));
+    /// assert!(
+    ///     forest
+    ///         .node(id)
+    ///         .expect("should never fail: node exists")
+    ///         .parent_id()
+    ///         .is_none(),
+    ///     "the root node does not have a parent"
+    /// );
     /// ```
     pub fn create_root(&mut self, data: T) -> NodeId {
         let new_id = self.hierarchy.create_root();
