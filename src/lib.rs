@@ -6,4 +6,7 @@
 #![warn(clippy::unwrap_used)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
+extern crate alloc;
+
+pub mod dynamic;
 mod nonmax;
