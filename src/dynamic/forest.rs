@@ -1,6 +1,7 @@
 //! Forest.
 
 mod node;
+pub mod traverse;
 
 use crate::dynamic::hierarchy::{Hierarchy, Neighbors};
 use crate::dynamic::id::NodeId;

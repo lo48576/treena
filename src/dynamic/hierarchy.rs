@@ -1,5 +1,7 @@
 //! Dynamic hierarchy for trees and forests.
 
+pub(crate) mod traverse;
+
 use core::fmt;
 
 use alloc::vec::Vec;

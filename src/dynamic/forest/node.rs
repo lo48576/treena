@@ -1,5 +1,6 @@
 //! Node.
 
+use crate::dynamic::forest::traverse::{Ancestors, DepthFirstTraverse, Siblings};
 use crate::dynamic::{Forest, NodeId};
 
 /// Immutable reference to a node.
@@ -22,6 +23,13 @@ impl<'a, T> Node<'a, T> {
             return None;
         }
         Some(Self { forest, id })
+    }
+
+    /// Returns a reference to the forest.
+    #[inline]
+    #[must_use]
+    pub fn forest(&self) -> &'a Forest<T> {
+        self.forest
     }
 
     /// Returns the node ID.
@@ -149,4 +157,210 @@ impl<'a, T> Node<'a, T> {
                 )
             })
     }
+
+    /// Returns an depth-first traversal iterator of a subtree.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use treena::dynamic::Forest;
+    /// use treena::dynamic::forest::traverse::DftEvent;
+    ///
+    /// let mut forest = Forest::new();
+    /// let id = forest.create_root(42);
+    /// let node = forest.node(id).expect("should never fail: node exists");
+    ///
+    /// assert_eq!(
+    ///     node
+    ///         .depth_first_traverse()
+    ///         .map(|ev| ev.map(|node| *node.data()))
+    ///         .collect::<Vec<_>>(),
+    ///     &[DftEvent::Open(42), DftEvent::Close(42)]
+    /// );
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn depth_first_traverse(&self) -> DepthFirstTraverse<'a, T> {
+        DepthFirstTraverse::with_toplevel(self)
+    }
+
+    /// Returns an iterator of ancestors, excluding this node.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use treena::dynamic::Forest;
+    ///
+    /// let mut forest = Forest::new();
+    /// let id = forest.create_root("root");
+    /// let node = forest.node(id).expect("should never fail: node exists");
+    ///
+    /// assert!(
+    ///     node.ancestors().map(|node| *node.data()).collect::<Vec<_>>().is_empty()
+    /// );
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn ancestors(&self) -> Ancestors<'a, T> {
+        first_skipped(self.ancestors_or_self())
+    }
+
+    /// Returns an iterator of ancestors, including this node.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use treena::dynamic::Forest;
+    ///
+    /// let mut forest = Forest::new();
+    /// let id = forest.create_root("root");
+    /// let node = forest.node(id).expect("should never fail: node exists");
+    ///
+    /// assert_eq!(
+    ///     node.ancestors_or_self().map(|node| *node.data()).collect::<Vec<_>>(),
+    ///     &["root"]
+    /// );
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn ancestors_or_self(&self) -> Ancestors<'a, T> {
+        Ancestors::with_start(self)
+    }
+
+    /// Returns an iterator of children.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use treena::dynamic::Forest;
+    ///
+    /// let mut forest = Forest::new();
+    /// let id = forest.create_root("root");
+    /// let node = forest.node(id).expect("should never fail: node exists");
+    ///
+    /// assert!(
+    ///     node.children().map(|node| *node.data()).collect::<Vec<_>>().is_empty()
+    /// );
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn children(&self) -> Siblings<'a, T> {
+        Siblings::with_parent(self)
+    }
+
+    /// Returns an iterator of the following siblings, excluding this node.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use treena::dynamic::Forest;
+    ///
+    /// let mut forest = Forest::new();
+    /// let id = forest.create_root("root");
+    /// let node = forest.node(id).expect("should never fail: node exists");
+    ///
+    /// assert!(
+    ///     node.following_siblings()
+    ///         .map(|node| *node.data())
+    ///         .collect::<Vec<_>>()
+    ///         .is_empty()
+    /// );
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn following_siblings(&self) -> Siblings<'a, T> {
+        first_skipped(self.following_siblings_or_self())
+    }
+
+    /// Returns an iterator of the following siblings, including this node.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use treena::dynamic::Forest;
+    ///
+    /// let mut forest = Forest::new();
+    /// let id = forest.create_root("root");
+    /// let node = forest.node(id).expect("should never fail: node exists");
+    ///
+    /// assert_eq!(
+    ///     node.following_siblings_or_self()
+    ///         .map(|node| *node.data())
+    ///         .collect::<Vec<_>>(),
+    ///     &["root"]
+    /// );
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn following_siblings_or_self(&self) -> Siblings<'a, T> {
+        Siblings::with_first_sibling(self)
+    }
+
+    /// Returns an iterator of the preceding siblings, excluding this node.
+    ///
+    /// Note that this iterates nodes in order from first child to last child.
+    /// If you want to the reverse-order iterator, use [`Iterator::rev`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use treena::dynamic::Forest;
+    ///
+    /// let mut forest = Forest::new();
+    /// let id = forest.create_root("root");
+    /// let node = forest.node(id).expect("should never fail: node exists");
+    ///
+    /// assert!(
+    ///     node.preceding_siblings()
+    ///         .map(|node| *node.data())
+    ///         .collect::<Vec<_>>()
+    ///         .is_empty()
+    /// );
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn preceding_siblings(&self) -> Siblings<'a, T> {
+        last_skipped(self.preceding_siblings_or_self())
+    }
+
+    /// Returns an iterator of the preceding siblings, including this node.
+    ///
+    /// Note that this iterates nodes in order from first child to last child.
+    /// If you want to the reverse-order iterator, use [`Iterator::rev`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use treena::dynamic::Forest;
+    ///
+    /// let mut forest = Forest::new();
+    /// let id = forest.create_root("root");
+    /// let node = forest.node(id).expect("should never fail: node exists");
+    ///
+    /// assert_eq!(
+    ///     node.preceding_siblings_or_self()
+    ///         .map(|node| *node.data())
+    ///         .collect::<Vec<_>>(),
+    ///     &["root"]
+    /// );
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn preceding_siblings_or_self(&self) -> Siblings<'a, T> {
+        Siblings::with_last_sibling(self)
+    }
+}
+
+/// Returns an iterator with the first element skipped.
+#[inline]
+fn first_skipped<I: Iterator>(mut iter: I) -> I {
+    iter.next();
+    iter
+}
+
+/// Returns an iterator with the last element skipped.
+#[inline]
+fn last_skipped<I: DoubleEndedIterator>(mut iter: I) -> I {
+    iter.next_back();
+    iter
 }
