@@ -3,10 +3,12 @@
 mod node;
 pub mod traverse;
 
-use crate::dynamic::hierarchy::{Hierarchy, Neighbors};
-use crate::dynamic::id::NodeId;
+use core::fmt;
 
-pub use self::node::Node;
+use crate::dynamic::hierarchy::{Hierarchy, Neighbors};
+use crate::dynamic::{InsertAs, NodeId};
+
+pub use self::node::{Node, NodeMut};
 
 /// Forest.
 #[derive(Debug, Clone)]
@@ -76,6 +78,31 @@ impl<T> Forest<T> {
         Node::new(self, id)
     }
 
+    /// Returns a [proxy object][`NodeMut`] to the mutable node.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use treena::dynamic::Forest;
+    ///
+    /// let mut forest = Forest::new();
+    /// let id = forest.create_root(42);
+    ///
+    /// let mut node = forest.node_mut(id).expect("should never fail: node exists");
+    ///
+    /// // Can access the associated data.
+    /// assert_eq!(*node.data(), 42);
+    /// // Can modify the associated data.
+    /// *node.data_mut() = 314;
+    /// assert_eq!(*node.data(), 314);
+    /// // TODO: Create a child.
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn node_mut(&mut self, id: NodeId) -> Option<NodeMut<'_, T>> {
+        NodeMut::new(self, id)
+    }
+
     /// Returns a reference to the data associated to the node.
     ///
     /// # Examples
@@ -120,6 +147,27 @@ impl<T> Forest<T> {
     #[must_use]
     fn neighbors(&self, id: NodeId) -> Option<&Neighbors> {
         self.hierarchy.neighbors(id)
+    }
+
+    /// Detaches and inserts the given node to the target position.
+    ///
+    /// # Panics
+    ///
+    /// Panics if any of the given nodes (including the anchor of the destination)
+    /// are not alive.
+    ///
+    /// # Errors
+    ///
+    /// * [`StructureError::AncestorDescendantLoop`]
+    ///     + In case `dest` is `FirstChildOf(node)` or `LastChildOf(node)`.
+    /// * [`StructureError::UnorderableSiblings`]
+    ///     + In case `dest` is `PreviousSiblingOf(node)` or `NextSiblingOf(node)`.
+    /// * [`StructureError::SiblingsWithoutParent`]
+    ///     + In case `dest` is `PreviousSiblingOf(v)` or `NextSiblingOf(v)`, and
+    ///       `v` does not have a parent.
+    #[inline]
+    pub fn insert(&mut self, node: NodeId, dest: InsertAs) -> Result<(), StructureError> {
+        self.hierarchy.insert(node, dest)
     }
 }
 
@@ -192,6 +240,22 @@ impl<T: Clone> Forest<T> {
 
         new_id
     }
+
+    /// Creates a node and inserts it to the target position.
+    ///
+    /// Returns the node ID of the newly created node.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node (the anchor of the destination) is not alive.
+    #[inline]
+    pub fn create_insert(&mut self, data: T, dest: InsertAs) -> NodeId {
+        let new_id = self.create_root(data);
+        self.insert(new_id, dest)
+            .expect("[consistency] newly created node is independent from the destination");
+
+        new_id
+    }
 }
 
 impl<T> Default for Forest<T> {
@@ -200,5 +264,27 @@ impl<T> Default for Forest<T> {
             hierarchy: Default::default(),
             data: Default::default(),
         }
+    }
+}
+
+/// Structure inconsistency error.
+#[derive(Debug, Clone, Copy)]
+pub enum StructureError {
+    /// Attempt to make a node the ancestor of itself.
+    AncestorDescendantLoop,
+    /// Attempt to make a node the sibling of itself.
+    UnorderableSiblings,
+    /// Attempt to add sibling nodes without a parent.
+    SiblingsWithoutParent,
+}
+
+impl fmt::Display for StructureError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let msg = match *self {
+            Self::AncestorDescendantLoop => "attempt to make a node the ancestor of itself",
+            Self::UnorderableSiblings => "attempt to make a node the sibling of itself",
+            Self::SiblingsWithoutParent => "attempt to add sibling nodes without a parent",
+        };
+        f.write_str(msg)
     }
 }

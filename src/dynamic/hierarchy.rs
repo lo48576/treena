@@ -6,7 +6,8 @@ use core::fmt;
 
 use alloc::vec::Vec;
 
-use crate::dynamic::NodeId;
+use crate::dynamic::forest::StructureError;
+use crate::dynamic::{InsertAs, NodeId};
 
 /// A forest without custom data tied to nodes.
 #[derive(Default, Debug, Clone)]
@@ -35,6 +36,296 @@ impl Hierarchy {
     #[must_use]
     pub(crate) fn neighbors(&self, id: NodeId) -> Option<&Neighbors> {
         self.neighbors.get(id.get()).filter(|v| v.is_alive())
+    }
+
+    /// Returns a mutable reference to the neighbors for the node if the node is alive.
+    ///
+    /// Returns `None` if the node ID is invalid or the node has already been removed.
+    #[must_use]
+    pub(crate) fn neighbors_mut(&mut self, id: NodeId) -> Option<&mut Neighbors> {
+        self.neighbors.get_mut(id.get()).filter(|v| v.is_alive())
+    }
+
+    /// Returns true if the node is alive.
+    #[must_use]
+    pub(crate) fn is_alive(&self, id: NodeId) -> bool {
+        self.neighbors.get(id.get()).map_or(false, |v| v.is_alive())
+    }
+
+    /// Connects the given adjacent neighbors and updates fields properly.
+    ///
+    /// This function connects the given three nodes and update fields to make
+    /// them consistent.
+    ///
+    /// ```text
+    ///    parent
+    ///     /  \
+    ///    /    \
+    /// prev -> next
+    /// ```
+    ///
+    /// More precisely, the fields below will be updated:
+    ///
+    /// * `parent->first_child`,
+    ///     + Updated if `prev_child` is `None`, i.e. when `next_child` will be
+    ///       the first child or the parent have no child.
+    /// * `prev_child->parent`,
+    /// * `prev_child->next_sibling`,
+    /// * `next_child->parent`, and
+    /// * `next_child->prev_sibling_cyclic`.
+    ///     + `prev_sibling` is used if available.
+    ///     + If `next_child` will be the first child of the parent, the last
+    ///       child is used.
+    ///     + Otherwise (if both `prev_sibling` and `parent` is `None`),
+    ///       `next_child` is used since this means that `next_child` is the
+    ///       root of a tree.
+    ///
+    /// In order to update `prev_sibling_cyclic` of the first sibling,
+    /// **nodes should be connected in order** and the last node should be
+    /// updated at last.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the `parent` is `None` while both of `prev_child` and
+    /// `next_child` are `Some`, since nodes cannot have siblings without
+    /// having a parent.
+    fn connect_triangle(
+        &mut self,
+        parent: Option<NodeId>,
+        prev_child: Option<NodeId>,
+        next_child: Option<NodeId>,
+    ) {
+        if parent.is_none() && prev_child.is_some() && next_child.is_some() {
+            panic!("[precondition] nodes cannot have siblings without having a parent");
+        }
+
+        if let Some(prev_child) = prev_child {
+            let prev_child_nbs = self
+                .neighbors_mut(prev_child)
+                .expect("[precondition] the given `prev_child` node must be alive");
+            // Set prev->parent.
+            prev_child_nbs.parent = parent;
+            // Set prev->next.
+            prev_child_nbs.next_sibling = next_child;
+        }
+
+        if let Some(next_child) = next_child {
+            let next_child_prev_cyclic = match prev_child {
+                // If the real previous child exist, just use it.
+                Some(prev_child) => prev_child,
+                None => match parent {
+                    // If `prev_child` is `None` but the parent is available,
+                    // then `next_child` is the first child, and
+                    // `prev_sibling_cyclic` should be the last child of the
+                    // parent.
+                    // If the parent does not have any children, then
+                    // `next_child` will be the first child.
+                    Some(parent) => self
+                        .neighbors(parent)
+                        .expect("[precondition] the given `parent` node must be alive")
+                        .last_child(self)
+                        .unwrap_or(next_child),
+                    // `next_child` is a root of the tree.
+                    None => next_child,
+                },
+            };
+
+            let next_child_nbs = self
+                .neighbors_mut(next_child)
+                .expect("[precondition] the given `next_child` node must be alive");
+            // Set next->parent.
+            next_child_nbs.parent = parent;
+            // Set next->prev.
+            next_child_nbs.prev_sibling_cyclic = Some(next_child_prev_cyclic);
+        }
+
+        // Neighbors of the parent must be modified after `next_child`, since
+        // setting `next_child` requires last child of the non-modified parent.
+        if let Some(parent) = parent {
+            if prev_child.is_none() {
+                let parent_nbs = self
+                    .neighbors_mut(parent)
+                    .expect("[precondition] the given `parent` node must be alive");
+                // `next_child` is the first child (if available).
+                parent_nbs.first_child = next_child;
+            }
+            if next_child.is_none() {
+                // `prev_child` has no next sibling. This means that
+                // `prev_child` is the last child of the parent.
+                let first_child = self
+                    .neighbors(parent)
+                    .expect("[precondition] the given `parent` node must be alive")
+                    .first_child()
+                    .expect("[consistency] the `parent` must have a child");
+                if let Some(prev_child) = prev_child {
+                    self.neighbors_mut(first_child)
+                        .expect("[precondition] the first child of the `parent` must be alive")
+                        .prev_sibling_cyclic = Some(prev_child);
+                }
+            }
+        }
+    }
+
+    /// Detaches `node` and inserts the given node to the target position.
+    ///
+    /// # Panics
+    ///
+    /// Panics if any of the given nodes (including the anchor of the destination)
+    /// are not alive.
+    ///
+    /// # Errors
+    ///
+    /// * [`StructureError::AncestorDescendantLoop`]
+    ///     + In case `dest` is `FirstChildOf(node)` or `LastChildOf(node)`.
+    /// * [`StructureError::UnorderableSiblings`]
+    ///     + In case `dest` is `PreviousSiblingOf(node)` or `NextSiblingOf(node)`.
+    /// * [`StructureError::SiblingsWithoutParent`]
+    ///     + In case `dest` is `PreviousSiblingOf(v)` or `NextSiblingOf(v)`, and
+    ///       `v` does not have a parent.
+    pub(crate) fn insert(&mut self, node: NodeId, dest: InsertAs) -> Result<(), StructureError> {
+        match dest {
+            InsertAs::FirstChildOf(parent) => self.prepend_child(node, parent),
+            InsertAs::LastChildOf(parent) => self.append_child(node, parent),
+            InsertAs::PreviousSiblingOf(next) => self.insert_before(node, next),
+            InsertAs::NextSiblingOf(prev) => self.insert_after(node, prev),
+        }
+    }
+
+    /// Detaches and prepends the given node to children of `self` as the first child.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StructureError::AncestorDescendantLoop`] error when
+    /// `new_first_child` and `parent` are identical.
+    ///
+    /// # Panics
+    ///
+    /// Panics if any of the given nodes are not alive.
+    /// Panics if the `new_first_child` does not have a parent.
+    fn prepend_child(
+        &mut self,
+        new_first_child: NodeId,
+        parent: NodeId,
+    ) -> Result<(), StructureError> {
+        let old_first_child = self
+            .neighbors(parent)
+            .expect("[precondition] the node must be alive")
+            .first_child();
+        SiblingsRange::with_single_toplevel(self, new_first_child).transplant(
+            self,
+            parent,
+            None,
+            old_first_child,
+        )
+    }
+
+    /// Detaches and appends the given node to children of `self` as the last child.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StructureError::AncestorDescendantLoop`] error when
+    /// `new_last_child` and `parent` are identical.
+    ///
+    /// # Panics
+    ///
+    /// Panics if any of the given nodes are not alive.
+    /// Panics if the `new_last_child` does not have a parent.
+    fn append_child(
+        &mut self,
+        new_last_child: NodeId,
+        parent: NodeId,
+    ) -> Result<(), StructureError> {
+        let old_last_child = self
+            .neighbors(parent)
+            .expect("[precondition] the parent must be alive")
+            .last_child(self);
+        // `new_last_child` is an independent tree, so transplanting won't fail.
+        SiblingsRange::with_single_toplevel(self, new_last_child).transplant(
+            self,
+            parent,
+            old_last_child,
+            None,
+        )
+    }
+
+    /// Detaches and inserts the given node as the previous sibling of `next_sibling`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StructureError::UnorderableSiblings`] error when `node` and
+    /// `next_sibling` are identical.
+    ///
+    /// # Panics
+    ///
+    /// Panics if any of the given nodes are not alive.
+    /// Panics if the `next_sibling` does not have a parent.
+    fn insert_before(&mut self, node: NodeId, next_sibling: NodeId) -> Result<(), StructureError> {
+        if node == next_sibling {
+            return Err(StructureError::UnorderableSiblings);
+        }
+
+        let next_nbs = self
+            .neighbors(next_sibling)
+            .expect("[precondition] the next sibling must be alive");
+        let parent = next_nbs
+            .parent()
+            .expect("[precondition] the parent must be alive to have siblings");
+        let prev_sibling = next_nbs.prev_sibling(self);
+        SiblingsRange::with_single_toplevel(self, node).transplant(
+            self,
+            parent,
+            prev_sibling,
+            Some(next_sibling),
+        )
+    }
+
+    /// Detaches and inserts the given node as the next sibling of `prev_sibling`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StructureError::UnorderableSiblings`] error when `node` and
+    /// `prev_sibling` are identical.
+    ///
+    /// # Panics
+    ///
+    /// Panics if any of the given nodes are not alive.
+    /// Panics if the `prev_sibling` does not have a parent.
+    fn insert_after(&mut self, node: NodeId, prev_sibling: NodeId) -> Result<(), StructureError> {
+        if node == prev_sibling {
+            return Err(StructureError::UnorderableSiblings);
+        }
+
+        let prev_nbs = self
+            .neighbors(prev_sibling)
+            .expect("[precondition] the previous sibling must be alive");
+        let parent = prev_nbs
+            .parent()
+            .expect("[precondition] the parent must be alive to have siblings");
+        let next_sibling = prev_nbs.next_sibling();
+        SiblingsRange::with_single_toplevel(self, node).transplant(
+            self,
+            parent,
+            Some(prev_sibling),
+            next_sibling,
+        )
+    }
+
+    /// Creates a new child node as the first child.
+    pub(crate) fn create_first_child(&mut self, parent: NodeId) -> NodeId {
+        let new_first_child = self.create_root();
+        // `new_first_child` is an independent tree, so transplanting won't fail.
+        self.prepend_child(new_first_child, parent)
+            .expect("[consistency] structure being made must be valid");
+        new_first_child
+    }
+
+    /// Creates a new child node as the last child.
+    pub(crate) fn create_last_child(&mut self, parent: NodeId) -> NodeId {
+        let new_last_child = self.create_root();
+        // `new_last_child` is an independent tree, so transplanting won't fail.
+        self.append_child(new_last_child, parent)
+            .expect("[consistency] structure being made must be valid");
+        new_last_child
     }
 }
 
@@ -200,5 +491,147 @@ impl fmt::Debug for Neighbors {
             .field("next_sibling", &OptNodeId(self.next_sibling))
             .field("first_child", &OptNodeId(self.first_child))
             .finish()
+    }
+}
+
+/// Siblings range.
+#[derive(Debug)]
+struct SiblingsRange {
+    /// First node in the range.
+    first: NodeId,
+    /// Last node in the range.
+    last: NodeId,
+}
+
+impl SiblingsRange {
+    /*
+    /// Creates a new siblings range.
+    ///
+    /// # Panics
+    ///
+    /// * Panics if `first` or `last` is not alive.
+    /// * Panics if `first` and `last` does not have the same parent node.
+    // TODO: Ordering:
+    // This should panic if `first` is a succeeding sibling of `prev`.
+    // However, this won't be O(1) operation. The hierarchy does not have an
+    // efficient way to test siblings orders.
+    // Without testing this, the function should be considered as unsafe.
+    #[allow(dead_code)] // TODO: Remove this once this is in use.
+    fn new(hier: &Hierarchy, first: NodeId, last: NodeId) -> Self {
+        if first == last {
+            return Self::with_single_toplevel(hier, first);
+        }
+
+        let first_parent = hier
+            .neighbors(first)
+            .expect("[precondition] `first` node must be alive")
+            .parent();
+        let last_parent = hier
+            .neighbors(last)
+            .expect("[precondition] `last` node must be alive")
+            .parent();
+        if first_parent != last_parent {
+            panic!("[precondition] `first` and `last` must have the same parent");
+        }
+
+        Self { first, last }
+    }
+    */
+
+    /// Creates a new siblings range from a single toplevel node.
+    ///
+    /// # Panics
+    ///
+    /// * Panics if the node is not alive.
+    fn with_single_toplevel(hier: &Hierarchy, node: NodeId) -> Self {
+        if !hier.is_alive(node) {
+            panic!("[precondition] the node must be alive");
+        }
+
+        Self {
+            first: node,
+            last: node,
+        }
+    }
+
+    /// Inserts the nodes in the range to the given place.
+    ///
+    /// ```text
+    /// Before:
+    ///
+    ///            parent
+    ///             /  \
+    ///            /    \
+    /// prev_sibling -> next_sibling
+    ///
+    ///                       (possible parent)
+    ///             _____________/ __/ \___ \______________
+    ///            /              /        \                \
+    /// PREV_OF_FIRST -> self.first --...-> self.last -> NEXT_OF_LAST
+    ///
+    ///
+    /// After:
+    ///
+    ///                             parent
+    ///             _____________/ __/ \___ \______________
+    ///            /              /        \                \
+    /// prev_sibling -> self.first --...-> self.last -> next_sibling
+    ///
+    ///        (possible parent)
+    ///              /  \
+    ///             /    \
+    /// PREV_OF_FIRST -> NEXT_OF_LAST
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// * Panics if the `parent`, `prev_sibling`, or `next_sibling` is not alive.
+    /// * Panics if the `parent` is not the actual parent of `prev_sibling` and
+    ///   `next_sibling`.
+    /// * Panics if any node in the range (`self`) is not alive.
+    fn transplant(
+        self,
+        hier: &mut Hierarchy,
+        parent: NodeId,
+        prev_sibling: Option<NodeId>,
+        next_sibling: Option<NodeId>,
+    ) -> Result<(), StructureError> {
+        // Detach the nodes.
+        {
+            let first_nbs = hier
+                .neighbors(self.first)
+                .expect("[consistency] nodes in the range must be alive");
+            let range_parent = first_nbs.parent();
+            let prev_of_range = first_nbs.prev_sibling(hier);
+            let next_of_range = hier
+                .neighbors(self.last)
+                .expect("[consistency] nodes in the range must be alive")
+                .next_sibling();
+            // Connect the nodes before and after the range.
+            hier.connect_triangle(range_parent, prev_of_range, next_of_range);
+        }
+
+        // Rewrite parents in the range.
+        {
+            let mut child_opt = Some(self.first);
+            while let Some(child) = child_opt {
+                if child == parent {
+                    return Err(StructureError::AncestorDescendantLoop);
+                }
+                let child_nbs = hier
+                    .neighbors_mut(child)
+                    .expect("[consistency] nodes in the range must be alive");
+                child_nbs.parent = Some(parent);
+                child_opt = child_nbs.next_sibling();
+            }
+        }
+
+        // Connect the first node in the range to the previous sibling.
+        hier.connect_triangle(Some(parent), prev_sibling, Some(self.first));
+
+        // Connect the last node in the range to the next sibling.
+        hier.connect_triangle(Some(parent), Some(self.last), next_sibling);
+
+        Ok(())
     }
 }
