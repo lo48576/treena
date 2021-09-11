@@ -8,7 +8,7 @@ use crate::dynamic::{AdoptAs, Forest, InsertAs, NodeId};
 ///
 /// This type guarantees that the node ID must be present in the internal
 /// storage of the tree and must not be removed yet.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 pub struct Node<'a, T> {
     /// Forest.
     forest: &'a Forest<T>,
@@ -404,6 +404,17 @@ impl<'a, T> Node<'a, T> {
         Siblings::with_last_sibling(self)
     }
 }
+
+impl<T> Clone for Node<'_, T> {
+    fn clone(&self) -> Self {
+        Self {
+            forest: self.forest,
+            id: self.id,
+        }
+    }
+}
+
+impl<T> Copy for Node<'_, T> {}
 
 /// Mutable reference to a node.
 ///
