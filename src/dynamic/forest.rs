@@ -1,5 +1,6 @@
 //! Forest.
 
+mod builder;
 mod node;
 pub mod traverse;
 
@@ -8,6 +9,7 @@ use core::fmt;
 use crate::dynamic::hierarchy::{Hierarchy, Neighbors};
 use crate::dynamic::{InsertAs, NodeId};
 
+pub use self::builder::TreeBuilder;
 pub use self::node::{Node, NodeMut};
 
 /// Forest.
