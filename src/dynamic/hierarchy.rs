@@ -148,15 +148,14 @@ impl Hierarchy {
                     .expect("[precondition] the given `parent` node must be alive");
                 // `next_child` is the first child (if available).
                 parent_nbs.first_child = next_child;
-            }
-            if next_child.is_none() {
+            } else if next_child.is_none() {
                 // `prev_child` has no next sibling. This means that
                 // `prev_child` is the last child of the parent.
                 let first_child = self
                     .neighbors(parent)
                     .expect("[precondition] the given `parent` node must be alive")
                     .first_child()
-                    .expect("[consistency] the `parent` must have a child");
+                    .expect("[consistency] `parent` must have a child including `prev_child`");
                 if let Some(prev_child) = prev_child {
                     self.neighbors_mut(first_child)
                         .expect("[precondition] the first child of the `parent` must be alive")
