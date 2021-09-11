@@ -16,6 +16,11 @@ resolver = "2"
 [package.metadata.docs.rs]
 all-features = true
 
+[features]
+default = ["std"]
+
+std = []
+
 [dependencies]
 
 [badges]
