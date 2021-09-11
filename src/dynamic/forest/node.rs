@@ -164,19 +164,31 @@ impl<'a, T> Node<'a, T> {
     /// # Examples
     ///
     /// ```
-    /// use treena::dynamic::Forest;
+    /// use treena::dynamic::{Forest, InsertAs};
     /// use treena::dynamic::forest::traverse::DftEvent;
     ///
     /// let mut forest = Forest::new();
-    /// let id = forest.create_root(42);
-    /// let node = forest.node(id).expect("should never fail: node exists");
+    /// let root = forest.create_root("root");
+    /// let child0 = forest.create_insert("0", InsertAs::LastChildOf(root));
+    /// forest.create_insert("0-0", InsertAs::LastChildOf(child0));
+    /// forest.create_insert("1", InsertAs::LastChildOf(root));
     ///
+    /// let node = forest.node(root).expect("should never fail: node exists");
     /// assert_eq!(
     ///     node
     ///         .depth_first_traverse()
     ///         .map(|ev| ev.map(|node| *node.data()))
     ///         .collect::<Vec<_>>(),
-    ///     &[DftEvent::Open(42), DftEvent::Close(42)]
+    ///     &[
+    ///         DftEvent::Open("root"),
+    ///         DftEvent::Open("0"),
+    ///         DftEvent::Open("0-0"),
+    ///         DftEvent::Close("0-0"),
+    ///         DftEvent::Close("0"),
+    ///         DftEvent::Open("1"),
+    ///         DftEvent::Close("1"),
+    ///         DftEvent::Close("root"),
+    ///     ]
     /// );
     /// ```
     #[inline]
@@ -190,14 +202,17 @@ impl<'a, T> Node<'a, T> {
     /// # Examples
     ///
     /// ```
-    /// use treena::dynamic::Forest;
+    /// use treena::dynamic::{Forest, InsertAs};
     ///
     /// let mut forest = Forest::new();
-    /// let id = forest.create_root("root");
-    /// let node = forest.node(id).expect("should never fail: node exists");
+    /// let root = forest.create_root("root");
+    /// let child0 = forest.create_insert("0", InsertAs::LastChildOf(root));
+    /// let child00 = forest.create_insert("0-0", InsertAs::LastChildOf(child0));
+    /// let node = forest.node(child00).expect("should never fail: node exists");
     ///
-    /// assert!(
-    ///     node.ancestors().map(|node| *node.data()).collect::<Vec<_>>().is_empty()
+    /// assert_eq!(
+    ///     node.ancestors().map(|node| *node.data()).collect::<Vec<_>>(),
+    ///     &["0", "root"]
     /// );
     /// ```
     #[inline]
@@ -211,15 +226,17 @@ impl<'a, T> Node<'a, T> {
     /// # Examples
     ///
     /// ```
-    /// use treena::dynamic::Forest;
+    /// use treena::dynamic::{Forest, InsertAs};
     ///
     /// let mut forest = Forest::new();
-    /// let id = forest.create_root("root");
-    /// let node = forest.node(id).expect("should never fail: node exists");
+    /// let root = forest.create_root("root");
+    /// let child0 = forest.create_insert("0", InsertAs::LastChildOf(root));
+    /// let child00 = forest.create_insert("0-0", InsertAs::LastChildOf(child0));
+    /// let node = forest.node(child00).expect("should never fail: node exists");
     ///
     /// assert_eq!(
     ///     node.ancestors_or_self().map(|node| *node.data()).collect::<Vec<_>>(),
-    ///     &["root"]
+    ///     &["0-0", "0", "root"]
     /// );
     /// ```
     #[inline]
@@ -233,14 +250,20 @@ impl<'a, T> Node<'a, T> {
     /// # Examples
     ///
     /// ```
-    /// use treena::dynamic::Forest;
+    /// use treena::dynamic::{Forest, InsertAs};
+    /// use treena::dynamic::forest::traverse::DftEvent;
     ///
     /// let mut forest = Forest::new();
-    /// let id = forest.create_root("root");
-    /// let node = forest.node(id).expect("should never fail: node exists");
+    /// let root = forest.create_root("root");
+    /// let child0 = forest.create_insert("0", InsertAs::LastChildOf(root));
+    /// let child00 = forest.create_insert("0-0", InsertAs::LastChildOf(child0));
+    /// forest.create_insert("1", InsertAs::LastChildOf(root));
+    /// forest.create_insert("2", InsertAs::LastChildOf(root));
+    /// let node = forest.node(root).expect("should never fail: node exists");
     ///
-    /// assert!(
-    ///     node.children().map(|node| *node.data()).collect::<Vec<_>>().is_empty()
+    /// assert_eq!(
+    ///     node.children().map(|node| *node.data()).collect::<Vec<_>>(),
+    ///     &["0", "1", "2"]
     /// );
     /// ```
     #[inline]
@@ -254,17 +277,20 @@ impl<'a, T> Node<'a, T> {
     /// # Examples
     ///
     /// ```
-    /// use treena::dynamic::Forest;
+    /// use treena::dynamic::{Forest, InsertAs};
     ///
     /// let mut forest = Forest::new();
-    /// let id = forest.create_root("root");
-    /// let node = forest.node(id).expect("should never fail: node exists");
+    /// let root = forest.create_root("root");
+    /// let child0 = forest.create_insert("0", InsertAs::LastChildOf(root));
+    /// let child1 = forest.create_insert("1", InsertAs::LastChildOf(root));
+    /// let child2 = forest.create_insert("2", InsertAs::LastChildOf(root));
+    /// let node = forest.node(child1).expect("should never fail: node exists");
     ///
-    /// assert!(
+    /// assert_eq!(
     ///     node.following_siblings()
     ///         .map(|node| *node.data())
-    ///         .collect::<Vec<_>>()
-    ///         .is_empty()
+    ///         .collect::<Vec<_>>(),
+    ///     &["2"]
     /// );
     /// ```
     #[inline]
@@ -278,17 +304,20 @@ impl<'a, T> Node<'a, T> {
     /// # Examples
     ///
     /// ```
-    /// use treena::dynamic::Forest;
+    /// use treena::dynamic::{Forest, InsertAs};
     ///
     /// let mut forest = Forest::new();
-    /// let id = forest.create_root("root");
-    /// let node = forest.node(id).expect("should never fail: node exists");
+    /// let root = forest.create_root("root");
+    /// let child0 = forest.create_insert("0", InsertAs::LastChildOf(root));
+    /// let child1 = forest.create_insert("1", InsertAs::LastChildOf(root));
+    /// let child2 = forest.create_insert("2", InsertAs::LastChildOf(root));
+    /// let node = forest.node(child1).expect("should never fail: node exists");
     ///
     /// assert_eq!(
     ///     node.following_siblings_or_self()
     ///         .map(|node| *node.data())
     ///         .collect::<Vec<_>>(),
-    ///     &["root"]
+    ///     &["1", "2"]
     /// );
     /// ```
     #[inline]
@@ -305,17 +334,29 @@ impl<'a, T> Node<'a, T> {
     /// # Examples
     ///
     /// ```
-    /// use treena::dynamic::Forest;
+    /// use treena::dynamic::{Forest, InsertAs};
     ///
     /// let mut forest = Forest::new();
-    /// let id = forest.create_root("root");
-    /// let node = forest.node(id).expect("should never fail: node exists");
+    /// let root = forest.create_root("root");
+    /// let child0 = forest.create_insert("0", InsertAs::LastChildOf(root));
+    /// let child1 = forest.create_insert("1", InsertAs::LastChildOf(root));
+    /// let child2 = forest.create_insert("2", InsertAs::LastChildOf(root));
+    /// let child3 = forest.create_insert("3", InsertAs::LastChildOf(root));
+    /// let node = forest.node(child2).expect("should never fail: node exists");
     ///
-    /// assert!(
+    /// assert_eq!(
     ///     node.preceding_siblings()
     ///         .map(|node| *node.data())
-    ///         .collect::<Vec<_>>()
-    ///         .is_empty()
+    ///         .collect::<Vec<_>>(),
+    ///     &["0", "1"]
+    /// );
+    /// assert_eq!(
+    ///     node.preceding_siblings()
+    ///         .rev() // REVERSED!
+    ///         .map(|node| *node.data())
+    ///         .collect::<Vec<_>>(),
+    ///     &["1", "0"],
+    ///     "Use `.rev()` to iterate from the starting node to the first node"
     /// );
     /// ```
     #[inline]
@@ -332,17 +373,29 @@ impl<'a, T> Node<'a, T> {
     /// # Examples
     ///
     /// ```
-    /// use treena::dynamic::Forest;
+    /// use treena::dynamic::{Forest, InsertAs};
     ///
     /// let mut forest = Forest::new();
-    /// let id = forest.create_root("root");
-    /// let node = forest.node(id).expect("should never fail: node exists");
+    /// let root = forest.create_root("root");
+    /// let child0 = forest.create_insert("0", InsertAs::LastChildOf(root));
+    /// let child1 = forest.create_insert("1", InsertAs::LastChildOf(root));
+    /// let child2 = forest.create_insert("2", InsertAs::LastChildOf(root));
+    /// let child3 = forest.create_insert("3", InsertAs::LastChildOf(root));
+    /// let node = forest.node(child2).expect("should never fail: node exists");
     ///
     /// assert_eq!(
     ///     node.preceding_siblings_or_self()
     ///         .map(|node| *node.data())
     ///         .collect::<Vec<_>>(),
-    ///     &["root"]
+    ///     &["0", "1", "2"]
+    /// );
+    /// assert_eq!(
+    ///     node.preceding_siblings_or_self()
+    ///         .rev() // REVERSED!
+    ///         .map(|node| *node.data())
+    ///         .collect::<Vec<_>>(),
+    ///     &["2", "1", "0"],
+    ///     "Use `.rev()` to iterate from the starting node to the first node"
     /// );
     /// ```
     #[inline]

@@ -95,7 +95,18 @@ impl<T> Forest<T> {
     /// // Can modify the associated data.
     /// *node.data_mut() = 314;
     /// assert_eq!(*node.data(), 314);
-    /// // TODO: Create a child.
+    ///
+    /// // Can create nodes as neighbors.
+    /// node.create_last_child(141421356);
+    ///
+    /// let node = forest.node(id).expect("should never fail: node exists");
+    /// assert_eq!(
+    ///     node
+    ///         .children()
+    ///         .map(|node| *node.data())
+    ///         .collect::<Vec<_>>(),
+    ///     &[141421356]
+    /// )
     /// ```
     #[inline]
     #[must_use]
