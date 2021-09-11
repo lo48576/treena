@@ -166,6 +166,158 @@ impl Hierarchy {
         }
     }
 
+    /// Detaches the tree from neighbors.
+    ///
+    /// Tree structure under the given node will be preserved.
+    /// The detached node will become a root node.
+    ///
+    /// If you want to detach not subtree but single node, use [`detach_single`]
+    /// method.
+    ///
+    /// ```text
+    /// Before `detach`:
+    ///
+    /// root
+    /// |-- 0
+    /// |-- 1
+    /// |   |-- 1-0
+    /// |   |-- 1-1
+    /// |   `-- 1-2
+    /// `-- 2
+    ///
+    /// After `detach`:
+    ///
+    /// root
+    /// |-- 0
+    /// `-- 2
+    ///
+    /// 1
+    /// |-- 1-0
+    /// |-- 1-1
+    /// `-- 1-2
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node is not alive.
+    pub(crate) fn detach(&mut self, node: NodeId) {
+        let nbs = self
+            .neighbors(node)
+            .expect("[precondition] the node must be alive");
+        // If the node has no parent, the tree can be considered already detached.
+        let parent = match nbs.parent() {
+            Some(v) => v,
+            None => return,
+        };
+        let prev = nbs.prev_sibling(self);
+        let next = nbs.next_sibling();
+
+        // Connect the siblings before and after the node.
+        self.connect_triangle(Some(parent), prev, next);
+
+        // Reset the neighbors info of the node.
+        let mut nbs = self
+            .neighbors_mut(node)
+            .expect("[precondition] the node must be alive");
+        nbs.parent = None;
+        nbs.next_sibling = None;
+        nbs.prev_sibling_cyclic = Some(node);
+    }
+
+    /// Detaches the node from neighbors and make it orphan root.
+    ///
+    /// Children are inserted to the place where the detached node was.
+    ///
+    /// If you want to detach not single node but subtree, use [`detach`]
+    /// method.
+    ///
+    /// ```text
+    /// Before `detach_single`:
+    ///
+    /// root
+    /// |-- 0
+    /// |-- 1
+    /// |   |-- 1-0
+    /// |   |-- 1-1
+    /// |   `-- 1-2
+    /// `-- 2
+    ///
+    /// After `detach_single`:
+    ///
+    /// root
+    /// |-- 0
+    /// |-- 1-0
+    /// |-- 1-1
+    /// |-- 1-2
+    /// `-- 2
+    ///
+    /// 1
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StructureError::SiblingsWithoutParent`] when the node has
+    /// multiple children but has no parent.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node is not alive.
+    pub(crate) fn detach_single(&mut self, node: NodeId) -> Result<(), StructureError> {
+        let nbs = self
+            .neighbors(node)
+            .expect("[precondition] the node must be alive");
+
+        let (first_child, last_child) = match nbs.first_last_child(self) {
+            Some(v) => v,
+            None => {
+                // No children.
+                self.detach(node);
+                return Ok(());
+            }
+        };
+
+        let parent = match nbs.parent() {
+            Some(v) => v,
+            None => {
+                if first_child != last_child {
+                    return Err(StructureError::SiblingsWithoutParent);
+                }
+                // Single child and no parent.
+                // The single child becomes the new root.
+                self.detach(first_child);
+                // Now the node has no children.
+                self.detach(node);
+                return Ok(());
+            }
+        };
+
+        let prev = nbs.prev_sibling(self);
+        let next = nbs.next_sibling();
+
+        // Connect the siblings before and after the node.
+        self.connect_triangle(Some(parent), prev, next);
+
+        // Insert the children between the prev and next siblings.
+        SiblingsRange::new(self, first_child, last_child)
+            .transplant(self, parent, prev, next)
+            .expect("[consistency] structure being created must be valid");
+
+        // Reset the neighbors info of the node.
+        let mut nbs = self
+            .neighbors_mut(node)
+            .expect("[precondition] the node must be alive");
+        nbs.parent = None;
+        nbs.next_sibling = None;
+        nbs.prev_sibling_cyclic = Some(node);
+        debug_assert_eq!(
+            nbs.first_child(),
+            None,
+            "[consistency] the children have been transplanted"
+        );
+
+        Ok(())
+    }
+
     /// Detaches `node` and inserts the given node to the target position.
     ///
     /// # Panics
@@ -504,7 +656,6 @@ struct SiblingsRange {
 }
 
 impl SiblingsRange {
-    /*
     /// Creates a new siblings range.
     ///
     /// # Panics
@@ -516,7 +667,7 @@ impl SiblingsRange {
     // However, this won't be O(1) operation. The hierarchy does not have an
     // efficient way to test siblings orders.
     // Without testing this, the function should be considered as unsafe.
-    #[allow(dead_code)] // TODO: Remove this once this is in use.
+    // For now, it is caller's responsibility to ensure siblings order.
     fn new(hier: &Hierarchy, first: NodeId, last: NodeId) -> Self {
         if first == last {
             return Self::with_single_toplevel(hier, first);
@@ -536,7 +687,6 @@ impl SiblingsRange {
 
         Self { first, last }
     }
-    */
 
     /// Creates a new siblings range from a single toplevel node.
     ///

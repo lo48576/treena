@@ -478,6 +478,88 @@ impl<'a, T> NodeMut<'a, T> {
 }
 
 impl<'a, T: Clone> NodeMut<'a, T> {
+    /// Detaches the tree from neighbors.
+    ///
+    /// Tree structure under the given node will be preserved.
+    /// The detached node will become a root node.
+    ///
+    /// If you want to detach not subtree but single node, use
+    /// [`detach_single`][`Self::detach_single`] method.
+    ///
+    /// ```text
+    /// Before `detach`:
+    ///
+    /// root
+    /// |-- 0
+    /// |-- 1
+    /// |   |-- 1-0
+    /// |   |-- 1-1
+    /// |   `-- 1-2
+    /// `-- 2
+    ///
+    /// After `detach`:
+    ///
+    /// root
+    /// |-- 0
+    /// `-- 2
+    ///
+    /// 1
+    /// |-- 1-0
+    /// |-- 1-1
+    /// `-- 1-2
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node is not alive.
+    #[inline]
+    pub fn detach(&mut self) {
+        self.forest.hierarchy.detach(self.id);
+    }
+
+    /// Detaches the node from neighbors and make it orphan root.
+    ///
+    /// Children are inserted to the place where the detached node was.
+    ///
+    /// If you want to detach not single node but subtree, use
+    /// [`detach`][`Self::detach`] method.
+    ///
+    /// ```text
+    /// Before `detach_single`:
+    ///
+    /// root
+    /// |-- 0
+    /// |-- 1
+    /// |   |-- 1-0
+    /// |   |-- 1-1
+    /// |   `-- 1-2
+    /// `-- 2
+    ///
+    /// After `detach_single`:
+    ///
+    /// root
+    /// |-- 0
+    /// |-- 1-0
+    /// |-- 1-1
+    /// |-- 1-2
+    /// `-- 2
+    ///
+    /// 1
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StructureError::SiblingsWithoutParent`] when the node has
+    /// multiple children but has no parent.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node is not alive.
+    #[inline]
+    pub fn detach_single(&mut self) -> Result<(), StructureError> {
+        self.forest.hierarchy.detach_single(self.id)
+    }
+
     /// Creates a new child node as the first child.
     ///
     /// # Example
