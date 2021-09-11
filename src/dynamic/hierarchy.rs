@@ -771,6 +771,9 @@ impl SiblingsRange {
                     .neighbors_mut(child)
                     .expect("[consistency] nodes in the range must be alive");
                 child_nbs.parent = Some(parent);
+                if child == self.last {
+                    break;
+                }
                 child_opt = child_nbs.next_sibling();
             }
         }
