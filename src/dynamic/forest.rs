@@ -172,32 +172,49 @@ impl<T> Forest<T> {
     /// If you want to detach not subtree but single node, use
     /// [`detach_single`][`Self::detach_single`] method.
     ///
-    /// ```text
-    /// Before `detach`:
+    /// # Panics
     ///
-    /// root
+    /// Panics if the node is not alive.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use treena::dynamic::forest::{Forest, TreeBuilder};
+    /// # let mut forest = Forest::new();
+    /// # let mut builder = TreeBuilder::new(&mut forest, "root")
+    /// #     .child("0")
+    /// #     .sibling("1");
+    /// # let child_1 = builder.current_id();
+    /// # let mut builder = builder
+    /// #     .child("1-0")
+    /// #     .sibling("1-1")
+    /// #     .sibling("1-2")
+    /// #     .parent()
+    /// #     .sibling("2");
+    /// # let root = builder.root_id();
+    /// let before = r#"root
     /// |-- 0
     /// |-- 1
     /// |   |-- 1-0
     /// |   |-- 1-1
     /// |   `-- 1-2
-    /// `-- 2
+    /// `-- 2"#;
+    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
+    /// assert_eq!(forest.debug_print(root).to_string(), before);
     ///
-    /// After `detach`:
+    /// // Detach the node "1".
+    /// forest.detach(child_1);
     ///
-    /// root
+    /// let after_detach_root = r#"root
     /// |-- 0
-    /// `-- 2
-    ///
-    /// 1
+    /// `-- 2"#;
+    /// let after_detach_child_1 = r#"1
     /// |-- 1-0
     /// |-- 1-1
-    /// `-- 1-2
+    /// `-- 1-2"#;
+    /// assert_eq!(forest.debug_print(root).to_string(), after_detach_root);
+    /// assert_eq!(forest.debug_print(child_1).to_string(), after_detach_child_1);
     /// ```
-    ///
-    /// # Panics
-    ///
-    /// Panics if the node is not alive.
     #[inline]
     pub fn detach(&mut self, node: NodeId) {
         self.hierarchy.detach(node);
@@ -210,29 +227,6 @@ impl<T> Forest<T> {
     /// If you want to detach not single node but subtree, use
     /// [`detach`][`Self::detach`] method.
     ///
-    /// ```text
-    /// Before `detach_single`:
-    ///
-    /// root
-    /// |-- 0
-    /// |-- 1
-    /// |   |-- 1-0
-    /// |   |-- 1-1
-    /// |   `-- 1-2
-    /// `-- 2
-    ///
-    /// After `detach_single`:
-    ///
-    /// root
-    /// |-- 0
-    /// |-- 1-0
-    /// |-- 1-1
-    /// |-- 1-2
-    /// `-- 2
-    ///
-    /// 1
-    /// ```
-    ///
     /// # Errors
     ///
     /// Returns [`StructureError::SiblingsWithoutParent`] when the node has
@@ -241,6 +235,46 @@ impl<T> Forest<T> {
     /// # Panics
     ///
     /// Panics if the node is not alive.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use treena::dynamic::forest::{Forest, TreeBuilder};
+    /// # let mut forest = Forest::new();
+    /// # let mut builder = TreeBuilder::new(&mut forest, "root")
+    /// #     .child("0")
+    /// #     .sibling("1");
+    /// # let child_1 = builder.current_id();
+    /// # let mut builder = builder
+    /// #     .child("1-0")
+    /// #     .sibling("1-1")
+    /// #     .sibling("1-2")
+    /// #     .parent()
+    /// #     .sibling("2");
+    /// # let root = builder.root_id();
+    /// let before = r#"root
+    /// |-- 0
+    /// |-- 1
+    /// |   |-- 1-0
+    /// |   |-- 1-1
+    /// |   `-- 1-2
+    /// `-- 2"#;
+    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
+    /// assert_eq!(forest.debug_print(root).to_string(), before);
+    ///
+    /// // Detach the single node "1".
+    /// forest.detach_single(child_1);
+    ///
+    /// let after_detach_root = r#"root
+    /// |-- 0
+    /// |-- 1-0
+    /// |-- 1-1
+    /// |-- 1-2
+    /// `-- 2"#;
+    /// let after_detach_child_1 = "1";
+    /// assert_eq!(forest.debug_print(root).to_string(), after_detach_root);
+    /// assert_eq!(forest.debug_print(child_1).to_string(), after_detach_child_1);
+    /// ```
     #[inline]
     pub fn detach_single(&mut self, node: NodeId) -> Result<(), StructureError> {
         self.hierarchy.detach_single(node)
@@ -262,6 +296,188 @@ impl<T> Forest<T> {
     /// * [`StructureError::SiblingsWithoutParent`]
     ///     + In case `dest` is `PreviousSiblingOf(v)` or `NextSiblingOf(v)`, and
     ///       `v` does not have a parent.
+    ///
+    /// # Examples
+    ///
+    /// [`InsertAs::NextSiblingOf`] inserts the node as the next sibling of
+    /// some other node.
+    ///
+    /// ```
+    /// use treena::dynamic::InsertAs;
+    ///
+    /// # use treena::dynamic::forest::{Forest, TreeBuilder};
+    /// # let mut forest = Forest::new();
+    /// # let mut builder = TreeBuilder::new(&mut forest, "root")
+    /// #     .child("0")
+    /// #     .sibling("1");
+    /// # let child_1 = builder.current_id();
+    /// # let mut builder = builder
+    /// #     .child("1-0")
+    /// #     .sibling("1-1")
+    /// #     .sibling("1-2")
+    /// #     .parent()
+    /// #     .sibling("2");
+    /// # let root = builder.root_id();
+    /// let before = r#"root
+    /// |-- 0
+    /// |-- 1
+    /// |   |-- 1-0
+    /// |   |-- 1-1
+    /// |   `-- 1-2
+    /// `-- 2"#;
+    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
+    /// assert_eq!(forest.debug_print(root).to_string(), before);
+    ///
+    /// // Create a new node.
+    /// let new = forest.create_root("new");
+    /// // Insert the node "new" as the next sibling of the node "1".
+    /// forest.insert(new, InsertAs::NextSiblingOf(child_1));
+    ///
+    /// let after_insert = r#"root
+    /// |-- 0
+    /// |-- 1
+    /// |   |-- 1-0
+    /// |   |-- 1-1
+    /// |   `-- 1-2
+    /// |-- new
+    /// `-- 2"#;
+    /// assert_eq!(forest.debug_print(root).to_string(), after_insert);
+    /// ```
+    ///
+    /// [`InsertAs::PreviousSiblingOf`] inserts the node as the previous sibling
+    /// of some other node.
+    ///
+    /// ```
+    /// use treena::dynamic::InsertAs;
+    ///
+    /// # use treena::dynamic::forest::{Forest, TreeBuilder};
+    /// # let mut forest = Forest::new();
+    /// # let mut builder = TreeBuilder::new(&mut forest, "root")
+    /// #     .child("0")
+    /// #     .sibling("1");
+    /// # let child_1 = builder.current_id();
+    /// # let mut builder = builder
+    /// #     .child("1-0")
+    /// #     .sibling("1-1")
+    /// #     .sibling("1-2")
+    /// #     .parent()
+    /// #     .sibling("2");
+    /// # let root = builder.root_id();
+    /// let before = r#"root
+    /// |-- 0
+    /// |-- 1
+    /// |   |-- 1-0
+    /// |   |-- 1-1
+    /// |   `-- 1-2
+    /// `-- 2"#;
+    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
+    /// assert_eq!(forest.debug_print(root).to_string(), before);
+    ///
+    /// // Create a new node.
+    /// let new = forest.create_root("new");
+    /// // Insert the node "new" as the previous sibling of the node "1".
+    /// forest.insert(new, InsertAs::PreviousSiblingOf(child_1));
+    ///
+    /// let after_insert = r#"root
+    /// |-- 0
+    /// |-- new
+    /// |-- 1
+    /// |   |-- 1-0
+    /// |   |-- 1-1
+    /// |   `-- 1-2
+    /// `-- 2"#;
+    /// assert_eq!(forest.debug_print(root).to_string(), after_insert);
+    /// ```
+    ///
+    /// [`InsertAs::FirstChildOf`] inserts the node as the first child of some
+    /// other node.
+    ///
+    /// ```
+    /// use treena::dynamic::InsertAs;
+    ///
+    /// # use treena::dynamic::forest::{Forest, TreeBuilder};
+    /// # let mut forest = Forest::new();
+    /// # let mut builder = TreeBuilder::new(&mut forest, "root")
+    /// #     .child("0")
+    /// #     .sibling("1");
+    /// # let child_1 = builder.current_id();
+    /// # let mut builder = builder
+    /// #     .child("1-0")
+    /// #     .sibling("1-1")
+    /// #     .sibling("1-2")
+    /// #     .parent()
+    /// #     .sibling("2");
+    /// # let root = builder.root_id();
+    /// let before = r#"root
+    /// |-- 0
+    /// |-- 1
+    /// |   |-- 1-0
+    /// |   |-- 1-1
+    /// |   `-- 1-2
+    /// `-- 2"#;
+    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
+    /// assert_eq!(forest.debug_print(root).to_string(), before);
+    ///
+    /// // Create a new node.
+    /// let new = forest.create_root("new");
+    /// // Insert the node "new" as the first child of the node "1".
+    /// forest.insert(new, InsertAs::FirstChildOf(child_1));
+    ///
+    /// let after_insert = r#"root
+    /// |-- 0
+    /// |-- 1
+    /// |   |-- new
+    /// |   |-- 1-0
+    /// |   |-- 1-1
+    /// |   `-- 1-2
+    /// `-- 2"#;
+    /// assert_eq!(forest.debug_print(root).to_string(), after_insert);
+    /// ```
+    ///
+    /// [`InsertAs::LastChildOf`] inserts the node as the last child of some
+    /// other node.
+    ///
+    /// ```
+    /// use treena::dynamic::InsertAs;
+    ///
+    /// # use treena::dynamic::forest::{Forest, TreeBuilder};
+    /// # let mut forest = Forest::new();
+    /// # let mut builder = TreeBuilder::new(&mut forest, "root")
+    /// #     .child("0")
+    /// #     .sibling("1");
+    /// # let child_1 = builder.current_id();
+    /// # let mut builder = builder
+    /// #     .child("1-0")
+    /// #     .sibling("1-1")
+    /// #     .sibling("1-2")
+    /// #     .parent()
+    /// #     .sibling("2");
+    /// # let root = builder.root_id();
+    /// let before = r#"root
+    /// |-- 0
+    /// |-- 1
+    /// |   |-- 1-0
+    /// |   |-- 1-1
+    /// |   `-- 1-2
+    /// `-- 2"#;
+    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
+    /// assert_eq!(forest.debug_print(root).to_string(), before);
+    ///
+    /// // Create a new node.
+    /// let new = forest.create_root("new");
+    /// // Insert the node "new" as the last child of the node "1".
+    /// forest.insert(new, InsertAs::LastChildOf(child_1));
+    ///
+    /// let after_insert = r#"root
+    /// |-- 0
+    /// |-- 1
+    /// |   |-- 1-0
+    /// |   |-- 1-1
+    /// |   |-- 1-2
+    /// |   `-- new
+    /// `-- 2"#;
+    /// assert_eq!(forest.debug_print(root).to_string(), after_insert);
+    /// ```
     #[inline]
     pub fn insert(&mut self, node: NodeId, dest: InsertAs) -> Result<(), StructureError> {
         self.hierarchy.insert(node, dest)
@@ -353,6 +569,8 @@ impl<T: Clone> Forest<T> {
     /// Creates a node and inserts it to the target position.
     ///
     /// Returns the node ID of the newly created node.
+    ///
+    /// To see how [`InsertAs`] works, see [`insert`][`Self::insert`] method.
     ///
     /// # Panics
     ///
