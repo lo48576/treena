@@ -468,24 +468,6 @@ impl Hierarchy {
             next_sibling,
         )
     }
-
-    /// Creates a new child node as the first child.
-    pub(crate) fn create_first_child(&mut self, parent: NodeId) -> NodeId {
-        let new_first_child = self.create_root();
-        // `new_first_child` is an independent tree, so transplanting won't fail.
-        self.prepend_child(new_first_child, parent)
-            .expect("[consistency] structure being made must be valid");
-        new_first_child
-    }
-
-    /// Creates a new child node as the last child.
-    pub(crate) fn create_last_child(&mut self, parent: NodeId) -> NodeId {
-        let new_last_child = self.create_root();
-        // `new_last_child` is an independent tree, so transplanting won't fail.
-        self.append_child(new_last_child, parent)
-            .expect("[consistency] structure being made must be valid");
-        new_last_child
-    }
 }
 
 /// Neighbors.

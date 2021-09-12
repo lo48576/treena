@@ -4,7 +4,7 @@
 use crate::dynamic::forest::debug_print::DebugPrint;
 use crate::dynamic::forest::traverse::{Ancestors, DepthFirstTraverse, Siblings};
 use crate::dynamic::forest::StructureError;
-use crate::dynamic::{AdoptAs, Forest, InsertAs, NodeId};
+use crate::dynamic::{AdoptAs, Forest, NodeId};
 
 /// Immutable reference to a node.
 ///
@@ -634,8 +634,6 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// # Example
     ///
     /// ```
-    /// use treena::dynamic::InsertAs;
-    ///
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root")
@@ -675,12 +673,9 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_create);
     /// ```
+    #[inline]
     pub fn create_first_child(&mut self, data: T) -> NodeId {
-        let new_first_child = self.forest.hierarchy.create_first_child(self.id);
-        assert_eq!(self.forest.data.len(), new_first_child.get());
-        self.forest.data.push(Some(data));
-
-        new_first_child
+        self.create(data, AdoptAs::FirstChild)
     }
 
     /// Creates a new child node as the last child.
@@ -688,8 +683,6 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// # Example
     ///
     /// ```
-    /// use treena::dynamic::InsertAs;
-    ///
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root")
@@ -729,12 +722,9 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_create);
     /// ```
+    #[inline]
     pub fn create_last_child(&mut self, data: T) -> NodeId {
-        let new_last_child = self.forest.hierarchy.create_last_child(self.id);
-        assert_eq!(self.forest.data.len(), new_last_child.get());
-        self.forest.data.push(Some(data));
-
-        new_last_child
+        self.create(data, AdoptAs::LastChild)
     }
 
     /// Creates a new node as the previous sibling.
@@ -742,8 +732,6 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// # Example
     ///
     /// ```
-    /// use treena::dynamic::InsertAs;
-    ///
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root")
@@ -784,20 +772,9 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_create);
     /// ```
+    #[inline]
     pub fn create_prev_sibling(&mut self, data: T) -> NodeId {
-        let new_prev_sibling = self.forest.hierarchy.create_root();
-        assert_eq!(self.forest.data.len(), new_prev_sibling.get());
-        self.forest.data.push(Some(data));
-
-        self.forest
-            .hierarchy
-            .insert(new_prev_sibling, InsertAs::PreviousSiblingOf(self.id))
-            .expect(
-                "[consistency] structure to be created must be valid since \
-                 the node being added is brand-new",
-            );
-
-        new_prev_sibling
+        self.create(data, AdoptAs::PreviousSibling)
     }
 
     /// Creates a new node as the next sibling.
@@ -805,8 +782,6 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// # Example
     ///
     /// ```
-    /// use treena::dynamic::InsertAs;
-    ///
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root")
@@ -847,20 +822,9 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_create);
     /// ```
+    #[inline]
     pub fn create_next_sibling(&mut self, data: T) -> NodeId {
-        let new_next_sibling = self.forest.hierarchy.create_root();
-        assert_eq!(self.forest.data.len(), new_next_sibling.get());
-        self.forest.data.push(Some(data));
-
-        self.forest
-            .hierarchy
-            .insert(new_next_sibling, InsertAs::NextSiblingOf(self.id))
-            .expect(
-                "[consistency] structure to be created must be valid since \
-                 the node being added is brand-new",
-            );
-
-        new_next_sibling
+        self.create(data, AdoptAs::NextSibling)
     }
 
     /// Creates a node and inserts it to the target position.
