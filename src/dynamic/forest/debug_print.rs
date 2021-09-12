@@ -2,6 +2,8 @@
 
 use core::fmt::{self, Write as _};
 
+use alloc::vec::Vec;
+
 use crate::dynamic::forest::traverse::DftEvent;
 use crate::dynamic::forest::Node;
 

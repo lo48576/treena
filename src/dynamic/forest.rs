@@ -1,12 +1,14 @@
 //! Forest.
 
 mod builder;
-#[cfg(any(doctest, feature = "debug-print"))]
+#[cfg(any(feature = "debug-print"))]
 pub mod debug_print;
 mod node;
 pub mod traverse;
 
 use core::fmt;
+
+use alloc::vec::Vec;
 
 use crate::dynamic::hierarchy::{Hierarchy, Neighbors};
 use crate::dynamic::{InsertAs, NodeId};
@@ -179,6 +181,7 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
+    /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root")
@@ -214,6 +217,7 @@ impl<T> Forest<T> {
     /// `-- 1-2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_detach_root);
     /// assert_eq!(forest.debug_print(child_1).to_string(), after_detach_child_1);
+    /// # }
     /// ```
     #[inline]
     pub fn detach(&mut self, node: NodeId) {
@@ -239,6 +243,7 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
+    /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root")
@@ -274,6 +279,7 @@ impl<T> Forest<T> {
     /// let after_detach_child_1 = "1";
     /// assert_eq!(forest.debug_print(root).to_string(), after_detach_root);
     /// assert_eq!(forest.debug_print(child_1).to_string(), after_detach_child_1);
+    /// # }
     /// ```
     #[inline]
     pub fn detach_single(&mut self, node: NodeId) -> Result<(), StructureError> {
@@ -303,6 +309,7 @@ impl<T> Forest<T> {
     /// some other node.
     ///
     /// ```
+    /// # #[cfg(feature = "debug-print")] {
     /// use treena::dynamic::InsertAs;
     ///
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
@@ -342,12 +349,14 @@ impl<T> Forest<T> {
     /// |-- new
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_insert);
+    /// # }
     /// ```
     ///
     /// [`InsertAs::PreviousSiblingOf`] inserts the node as the previous sibling
     /// of some other node.
     ///
     /// ```
+    /// # #[cfg(feature = "debug-print")] {
     /// use treena::dynamic::InsertAs;
     ///
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
@@ -387,12 +396,14 @@ impl<T> Forest<T> {
     /// |   `-- 1-2
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_insert);
+    /// # }
     /// ```
     ///
     /// [`InsertAs::FirstChildOf`] inserts the node as the first child of some
     /// other node.
     ///
     /// ```
+    /// # #[cfg(feature = "debug-print")] {
     /// use treena::dynamic::InsertAs;
     ///
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
@@ -432,12 +443,14 @@ impl<T> Forest<T> {
     /// |   `-- 1-2
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_insert);
+    /// # }
     /// ```
     ///
     /// [`InsertAs::LastChildOf`] inserts the node as the last child of some
     /// other node.
     ///
     /// ```
+    /// # #[cfg(feature = "debug-print")] {
     /// use treena::dynamic::InsertAs;
     ///
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
@@ -477,6 +490,7 @@ impl<T> Forest<T> {
     /// |   `-- new
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_insert);
+    /// # }
     /// ```
     #[inline]
     pub fn insert(&mut self, node: NodeId, dest: InsertAs) -> Result<(), StructureError> {
