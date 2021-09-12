@@ -20,6 +20,19 @@ pub enum AdoptAs {
     NextSibling,
 }
 
+impl AdoptAs {
+    /// Creates `InsertAs` with the given anchor.
+    #[must_use]
+    fn insert_with_anchor(self, anchor: NodeId) -> InsertAs {
+        match self {
+            Self::FirstChild => InsertAs::FirstChildOf(anchor),
+            Self::LastChild => InsertAs::LastChildOf(anchor),
+            Self::PreviousSibling => InsertAs::PreviousSiblingOf(anchor),
+            Self::NextSibling => InsertAs::NextSiblingOf(anchor),
+        }
+    }
+}
+
 /// Target destination to insert, append, or prepend a node.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 // All variants have the common suffix "Of", but this is intended.
