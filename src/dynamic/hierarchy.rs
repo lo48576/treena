@@ -609,6 +609,53 @@ impl Neighbors {
             None => panic!("[consistency] the last child must be alive"),
         }
     }
+
+    /// Returns true if the node has no neighbors.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the `self` node has already been removed.
+    #[must_use]
+    pub(crate) fn is_alone(&self) -> bool {
+        if !self.is_alive() {
+            panic!("[precondition] the node must be alive");
+        }
+        self.parent.is_none() && self.next_sibling.is_none() && self.first_child.is_none()
+    }
+
+    /// Makes the node removed state.
+    ///
+    /// It is caller's responsibility to make the node alone and keep the
+    /// hierarchy consistent.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the `self` node has already been removed.
+    /// Panics if the `self` node is not alone.
+    pub(crate) fn make_removed(&mut self) {
+        if !self.is_alone() {
+            panic!("[precondition] the node must be alive and alone");
+        }
+        self.force_make_removed();
+    }
+
+    /// Makes the node removed state **even if it can make the arena inconsistent**.
+    ///
+    /// It is caller's responsibility to make the node alone and/or make the
+    /// hierarchy finally consistent.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the `self` node has already been removed.
+    pub(crate) fn force_make_removed(&mut self) {
+        if !self.is_alive() {
+            panic!("[precondition] the node must be alive");
+        }
+        self.parent = None;
+        self.prev_sibling_cyclic = None;
+        self.next_sibling = None;
+        self.first_child = None;
+    }
 }
 
 // For compact printing.

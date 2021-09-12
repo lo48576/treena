@@ -282,3 +282,85 @@ impl SiblingsTraverser {
         neighbors.prev_sibling(hier)
     }
 }
+
+/// Limited depth-first tree traverser in "safe mode".
+///
+/// # Guarantees
+///
+/// This traverser allows the tree to be modified in some way during the
+/// traversal.
+///
+/// Nodes already visited and have been left (i.e. `DftEvent::Close(node)` has
+/// been emitted) can be modified freely. The traverser is guaranteed not to
+/// refer such nodes after leaving them.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct SafeModeDepthFirstTraverser {
+    /// Next event to emit.
+    next: Option<DftEvent>,
+    /// Root node of the traversal.
+    root: NodeId,
+}
+
+impl SafeModeDepthFirstTraverser {
+    /// Creates a traverser from a toplevel node.
+    ///
+    /// The toplevel does not need to be the root of a tree.
+    #[must_use]
+    pub(crate) fn new(root: NodeId) -> Self {
+        Self {
+            next: Some(DftEvent::Open(root)),
+            root,
+        }
+    }
+
+    /// Traverses the tree forward and returns the next node event.
+    pub(crate) fn next(&mut self, hier: &Hierarchy) -> Option<DftEvent> {
+        let next = self.next?;
+        self.next = self.next_of_next(hier);
+        Some(next)
+    }
+
+    /// Traverses the tree knd returns the next event of the next event.
+    fn next_of_next(&mut self, hier: &Hierarchy) -> Option<DftEvent> {
+        let next = self.next?;
+        if next == DftEvent::Close(self.root) {
+            // The next event is the last event.
+            return None;
+        }
+        let next_of_next = match next {
+            DftEvent::Open(id) => {
+                // Dive into the first child if available, or leave the node.
+                let neighbors = hier
+                    .neighbors(id)
+                    .expect("[consistency] the current node must be alive");
+                match neighbors.first_child() {
+                    Some(first_child) => DftEvent::Open(first_child),
+                    None => DftEvent::Close(id),
+                }
+            }
+            DftEvent::Close(id) => {
+                // Dive into the next sibling if available, or leave the parent.
+                let neighbors = hier
+                    .neighbors(id)
+                    .expect("[consistency] the current node must be alive");
+                match neighbors.next_sibling() {
+                    Some(next_sibling) => DftEvent::Open(next_sibling),
+                    None => {
+                        // If the next event is `Close(root)`, the code must have
+                        // returned earlily and does not come here.
+                        debug_assert_ne!(
+                            id, self.root,
+                            "[consistency] closing of the root must have been handled specially"
+                        );
+                        let parent = neighbors.parent().expect(
+                            "[consistency] parent node must exist since the node is not the root",
+                        );
+                        DftEvent::Close(parent)
+                    }
+                }
+            }
+        };
+
+        Some(next_of_next)
+    }
+}
