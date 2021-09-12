@@ -840,3 +840,128 @@ fn last_skipped<I: DoubleEndedIterator>(mut iter: I) -> I {
     iter.next_back();
     iter
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Forest;
+
+    use crate::dynamic::forest::traverse::DftEvent;
+    use crate::dynamic::{AdoptAs, InsertAs};
+
+    mod insert {
+        use super::*;
+
+        #[test]
+        fn unchanged_first_child_of_parent() {
+            let mut forest = Forest::new();
+            let root = forest.create_root("root");
+            assert_eq!(
+                forest
+                    .node(root)
+                    .expect("the node must be alive")
+                    .depth_first_traverse()
+                    .map(|ev| ev.map(|node| *node.data()))
+                    .collect::<Vec<_>>(),
+                &[DftEvent::Open("root"), DftEvent::Close("root"),]
+            );
+
+            let mut node = forest.node_mut(root).expect("the node must be alive");
+
+            // Create a new node.
+            // Create a node "new" and insert it as the first child of the node "root".
+            let new = node.create_first_child("new");
+            assert_eq!(
+                forest
+                    .node(root)
+                    .expect("the node must be alive")
+                    .depth_first_traverse()
+                    .map(|ev| ev.map(|node| *node.data()))
+                    .collect::<Vec<_>>(),
+                &[
+                    DftEvent::Open("root"),
+                    DftEvent::Open("new"),
+                    DftEvent::Close("new"),
+                    DftEvent::Close("root"),
+                ]
+            );
+
+            // Re-insert the "new" node to the same position (i.e. do nothing).
+            forest
+                .insert(new, InsertAs::FirstChildOf(root))
+                .expect("changing nothing should succeed");
+
+            assert_eq!(
+                forest
+                    .node(root)
+                    .expect("the node must be alive")
+                    .depth_first_traverse()
+                    .map(|ev| ev.map(|node| *node.data()))
+                    .collect::<Vec<_>>(),
+                &[
+                    DftEvent::Open("root"),
+                    DftEvent::Open("new"),
+                    DftEvent::Close("new"),
+                    DftEvent::Close("root"),
+                ]
+            );
+        }
+    }
+
+    mod adopt {
+        use super::*;
+
+        #[test]
+        fn unchanged_first_child_of_parent() {
+            let mut forest = Forest::new();
+            let root = forest.create_root("root");
+            assert_eq!(
+                forest
+                    .node(root)
+                    .expect("the node must be alive")
+                    .depth_first_traverse()
+                    .map(|ev| ev.map(|node| *node.data()))
+                    .collect::<Vec<_>>(),
+                &[DftEvent::Open("root"), DftEvent::Close("root"),]
+            );
+
+            let mut node = forest.node_mut(root).expect("the node must be alive");
+
+            // Create a new node.
+            // Create a node "new" and insert it as the first child of the node "root".
+            let new = node.create_first_child("new");
+            assert_eq!(
+                forest
+                    .node(root)
+                    .expect("the node must be alive")
+                    .depth_first_traverse()
+                    .map(|ev| ev.map(|node| *node.data()))
+                    .collect::<Vec<_>>(),
+                &[
+                    DftEvent::Open("root"),
+                    DftEvent::Open("new"),
+                    DftEvent::Close("new"),
+                    DftEvent::Close("root"),
+                ]
+            );
+
+            let mut node = forest.node_mut(root).expect("the node must be alive");
+            // Re-insert the "new" node to the same position (i.e. do nothing).
+            node.adopt(new, AdoptAs::FirstChild);
+
+            assert_eq!(
+                forest
+                    .node(root)
+                    .expect("the node must be alive")
+                    .depth_first_traverse()
+                    .map(|ev| ev.map(|node| *node.data()))
+                    .collect::<Vec<_>>(),
+                &[
+                    DftEvent::Open("root"),
+                    DftEvent::Open("new"),
+                    DftEvent::Close("new"),
+                    DftEvent::Close("root"),
+                ]
+            );
+        }
+    }
+}
