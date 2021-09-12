@@ -1134,6 +1134,8 @@ fn last_skipped<I: DoubleEndedIterator>(mut iter: I) -> I {
 mod tests {
     use super::Forest;
 
+    use alloc::vec::Vec;
+
     use crate::dynamic::forest::traverse::DftEvent;
     use crate::dynamic::{AdoptAs, InsertAs};
 

@@ -8,6 +8,8 @@ pub mod traverse;
 
 use core::fmt;
 
+use alloc::vec::Vec;
+
 use crate::dynamic::hierarchy::{Hierarchy, Neighbors};
 use crate::dynamic::{InsertAs, NodeId};
 
