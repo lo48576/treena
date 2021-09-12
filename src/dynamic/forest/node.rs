@@ -527,11 +527,12 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest, "root")
+    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let child_1 = builder
     /// #     .child("0")
-    /// #     .sibling("1");
-    /// # let child_1 = builder.current_id();
-    /// # let mut builder = builder
+    /// #     .sibling("1")
+    /// #     .current_id();
+    /// # builder
     /// #     .child("1-0")
     /// #     .sibling("1-1")
     /// #     .sibling("1-2")
@@ -591,11 +592,12 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest, "root")
+    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let child_1 = builder
     /// #     .child("0")
-    /// #     .sibling("1");
-    /// # let child_1 = builder.current_id();
-    /// # let mut builder = builder
+    /// #     .sibling("1")
+    /// #     .current_id();
+    /// # builder
     /// #     .child("1-0")
     /// #     .sibling("1-1")
     /// #     .sibling("1-2")
@@ -641,11 +643,12 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest, "root")
+    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let child_1 = builder
     /// #     .child("0")
-    /// #     .sibling("1");
-    /// # let child_1 = builder.current_id();
-    /// # let mut builder = builder
+    /// #     .sibling("1")
+    /// #     .current_id();
+    /// # builder
     /// #     .child("1-0")
     /// #     .sibling("1-1")
     /// #     .sibling("1-2")
@@ -692,11 +695,12 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest, "root")
+    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let child_1 = builder
     /// #     .child("0")
-    /// #     .sibling("1");
-    /// # let child_1 = builder.current_id();
-    /// # let mut builder = builder
+    /// #     .sibling("1")
+    /// #     .current_id();
+    /// # builder
     /// #     .child("1-0")
     /// #     .sibling("1-1")
     /// #     .sibling("1-2")
@@ -743,11 +747,12 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest, "root")
+    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let child_1 = builder
     /// #     .child("0")
-    /// #     .sibling("1");
-    /// # let child_1 = builder.current_id();
-    /// # let mut builder = builder
+    /// #     .sibling("1")
+    /// #     .current_id();
+    /// # builder
     /// #     .child("1-0")
     /// #     .sibling("1-1")
     /// #     .sibling("1-2")
@@ -795,11 +800,12 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest, "root")
+    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let child_1 = builder
     /// #     .child("0")
-    /// #     .sibling("1");
-    /// # let child_1 = builder.current_id();
-    /// # let mut builder = builder
+    /// #     .sibling("1")
+    /// #     .current_id();
+    /// # builder
     /// #     .child("1-0")
     /// #     .sibling("1-1")
     /// #     .sibling("1-2")
@@ -855,11 +861,12 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     ///
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest, "root")
+    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let child_1 = builder
     /// #     .child("0")
-    /// #     .sibling("1");
-    /// # let child_1 = builder.current_id();
-    /// # let mut builder = builder
+    /// #     .sibling("1")
+    /// #     .current_id();
+    /// # builder
     /// #     .child("1-0")
     /// #     .sibling("1-1")
     /// #     .sibling("1-2")
@@ -902,11 +909,12 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     ///
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest, "root")
+    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let child_1 = builder
     /// #     .child("0")
-    /// #     .sibling("1");
-    /// # let child_1 = builder.current_id();
-    /// # let mut builder = builder
+    /// #     .sibling("1")
+    /// #     .current_id();
+    /// # builder
     /// #     .child("1-0")
     /// #     .sibling("1-1")
     /// #     .sibling("1-2")
@@ -949,11 +957,12 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     ///
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest, "root")
+    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let child_1 = builder
     /// #     .child("0")
-    /// #     .sibling("1");
-    /// # let child_1 = builder.current_id();
-    /// # let mut builder = builder
+    /// #     .sibling("1")
+    /// #     .current_id();
+    /// # builder
     /// #     .child("1-0")
     /// #     .sibling("1-1")
     /// #     .sibling("1-2")
@@ -997,11 +1006,12 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     ///
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest, "root")
+    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let child_1 = builder
     /// #     .child("0")
-    /// #     .sibling("1");
-    /// # let child_1 = builder.current_id();
-    /// # let mut builder = builder
+    /// #     .sibling("1")
+    /// #     .current_id();
+    /// # builder
     /// #     .child("1-0")
     /// #     .sibling("1-1")
     /// #     .sibling("1-2")
@@ -1065,15 +1075,16 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     ///
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest, "root")
+    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let child_1 = builder
     /// #     .child("0")
-    /// #     .sibling("1");
-    /// # let child_1 = builder.current_id();
-    /// # let mut builder = builder
+    /// #     .sibling("1")
+    /// #     .current_id();
+    /// # let child_1_1 = builder
     /// #     .child("1-0")
-    /// #     .sibling("1-1");
-    /// # let child_1_1 = builder.current_id();
-    /// # let mut builder = builder
+    /// #     .sibling("1-1")
+    /// #     .current_id();
+    /// # builder
     /// #     .child("1-1-0")
     /// #     .sibling("1-1-1")
     /// #     .sibling("1-1-2")
@@ -1166,13 +1177,14 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest, "root")
+    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let child_1_1 = builder
     /// #     .child("0")
     /// #     .sibling("1")
     /// #     .child("1-0")
-    /// #     .sibling("1-1");
-    /// # let child_1_1 = builder.current_id();
-    /// # let mut builder = builder
+    /// #     .sibling("1-1")
+    /// #     .current_id();
+    /// # builder
     /// #     .child("1-1-0")
     /// #     .sibling("1-1-1")
     /// #     .sibling("1-1-2")
@@ -1241,13 +1253,14 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest, "root")
+    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let child_1_1 = builder
     /// #     .child("0")
     /// #     .sibling("1")
     /// #     .child("1-0")
-    /// #     .sibling("1-1");
-    /// # let child_1_1 = builder.current_id();
-    /// # let mut builder = builder
+    /// #     .sibling("1-1")
+    /// #     .current_id();
+    /// # builder
     /// #     .child("1-1-0")
     /// #     .sibling("1-1-1")
     /// #     .sibling("1-1-2")
@@ -1311,13 +1324,14 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest, "root")
+    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let child_1_1 = builder
     /// #     .child("0")
     /// #     .sibling("1")
     /// #     .child("1-0")
-    /// #     .sibling("1-1");
-    /// # let child_1_1 = builder.current_id();
-    /// # let mut builder = builder
+    /// #     .sibling("1-1")
+    /// #     .current_id();
+    /// # builder
     /// #     .child("1-1-0")
     /// #     .sibling("1-1-1")
     /// #     .sibling("1-1-2")
