@@ -1136,6 +1136,229 @@ impl<'a, T: Clone> NodeMut<'a, T> {
             .hierarchy
             .insert(node, dest.insert_with_anchor(self.id))
     }
+
+    /// Removes the subtree from the forest.
+    ///
+    /// Data of each node is passed to the function `f` before removed from
+    /// the forest. The order of the node traversal is postorder.
+    ///
+    /// # Panic safety
+    ///
+    /// This method is panic safe, i.e. the forest and arena remains consistent
+    /// even when the given function panics.
+    ///
+    /// However, this safety is for panicking argument. If the crate itself has
+    /// a bug and panics with assertion failure, no consistency guarantees are
+    /// provided of course.
+    ///
+    /// Note that being panic-safe introduces extra cost. If you won't use the
+    /// forest after the panic happens, use more efficient but panic-unsafe
+    /// version, [`remove_hooked`][`Self::remove_hooked`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node is not alive, i.e. has been already removed or
+    /// does not exist.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #[cfg(feature = "debug-print")] {
+    /// # use treena::dynamic::forest::{Forest, TreeBuilder};
+    /// # let mut forest = Forest::new();
+    /// # let mut builder = TreeBuilder::new(&mut forest, "root")
+    /// #     .child("0")
+    /// #     .sibling("1")
+    /// #     .child("1-0")
+    /// #     .sibling("1-1");
+    /// # let child_1_1 = builder.current_id();
+    /// # let mut builder = builder
+    /// #     .child("1-1-0")
+    /// #     .sibling("1-1-1")
+    /// #     .sibling("1-1-2")
+    /// #     .parent()
+    /// #     .sibling("1-2")
+    /// #     .parent()
+    /// #     .sibling("2");
+    /// # let root = builder.root_id();
+    /// let before = r#"root
+    /// |-- 0
+    /// |-- 1
+    /// |   |-- 1-0
+    /// |   |-- 1-1
+    /// |   |   |-- 1-1-0
+    /// |   |   |-- 1-1-1
+    /// |   |   `-- 1-1-2
+    /// |   `-- 1-2
+    /// `-- 2"#;
+    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
+    /// assert_eq!(forest.debug_print(root).to_string(), before);
+    ///
+    /// let mut removed_data = Vec::new();
+    ///
+    /// // Remove "1-1" and its descendant.
+    /// let mut node = forest.node_mut(child_1_1)
+    ///     .expect("the node must be alive");
+    /// node.remove_hooked_panic_safe(|data| {
+    ///     removed_data.push(data);
+    /// });
+    ///
+    /// let after_remove = r#"root
+    /// |-- 0
+    /// |-- 1
+    /// |   |-- 1-0
+    /// |   `-- 1-2
+    /// `-- 2"#;
+    /// assert_eq!(forest.debug_print(root).to_string(), after_remove);
+    /// assert_eq!(removed_data, &["1-1-0", "1-1-1", "1-1-2", "1-1"]);
+    /// # }
+    /// ```
+    #[inline]
+    pub fn remove_hooked_panic_safe<F: FnMut(T)>(self, f: F) {
+        self.forest.remove_hooked_panic_safe(self.id, f)
+    }
+
+    /// Removes the subtree from the forest.
+    ///
+    /// Data of each node is passed to the function `f` before removed from
+    /// the forest. The order of the node traversal is postorder.
+    ///
+    /// Note that the forest and arena will be inconsistent once the given
+    /// function panics. In other words, panicking of the given function make
+    /// the forest lose any guarantee of correctness and availability.
+    ///
+    /// If you want to refer the forest even when panic happens, use panic-safe
+    /// version [`remove_hooked_panic_safe`][`Self::remove_hooked_panic_safe`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node is not alive, i.e. has been already removed or
+    /// does not exist.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #[cfg(feature = "debug-print")] {
+    /// # use treena::dynamic::forest::{Forest, TreeBuilder};
+    /// # let mut forest = Forest::new();
+    /// # let mut builder = TreeBuilder::new(&mut forest, "root")
+    /// #     .child("0")
+    /// #     .sibling("1")
+    /// #     .child("1-0")
+    /// #     .sibling("1-1");
+    /// # let child_1_1 = builder.current_id();
+    /// # let mut builder = builder
+    /// #     .child("1-1-0")
+    /// #     .sibling("1-1-1")
+    /// #     .sibling("1-1-2")
+    /// #     .parent()
+    /// #     .sibling("1-2")
+    /// #     .parent()
+    /// #     .sibling("2");
+    /// # let root = builder.root_id();
+    /// let before = r#"root
+    /// |-- 0
+    /// |-- 1
+    /// |   |-- 1-0
+    /// |   |-- 1-1
+    /// |   |   |-- 1-1-0
+    /// |   |   |-- 1-1-1
+    /// |   |   `-- 1-1-2
+    /// |   `-- 1-2
+    /// `-- 2"#;
+    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
+    /// assert_eq!(forest.debug_print(root).to_string(), before);
+    ///
+    /// let mut removed_data = Vec::new();
+    ///
+    /// // Remove "1-1" and its descendant.
+    /// let mut node = forest.node_mut(child_1_1)
+    ///     .expect("the node must be alive");
+    /// node.remove_hooked(|data| {
+    ///     removed_data.push(data);
+    /// });
+    ///
+    /// let after_remove = r#"root
+    /// |-- 0
+    /// |-- 1
+    /// |   |-- 1-0
+    /// |   `-- 1-2
+    /// `-- 2"#;
+    /// assert_eq!(forest.debug_print(root).to_string(), after_remove);
+    /// assert_eq!(removed_data, &["1-1-0", "1-1-1", "1-1-2", "1-1"]);
+    /// # }
+    /// ```
+    #[inline]
+    pub fn remove_hooked<F: FnMut(T)>(self, f: F) {
+        self.forest.remove_hooked(self.id, f)
+    }
+
+    /// Removes the subtree from the forest.
+    ///
+    /// Data associated to the nodes being removed are simply discarded.
+    /// If you want to take or use them out of the forest, use
+    /// [`remove_hooked`][`Self::remove_hooked`] method or
+    /// [`remove_hooked_panic_safe`][`Self::remove_hooked_panic_safe`] instead.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node is not alive, i.e. has been already removed or
+    /// does not exist.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #[cfg(feature = "debug-print")] {
+    /// # use treena::dynamic::forest::{Forest, TreeBuilder};
+    /// # let mut forest = Forest::new();
+    /// # let mut builder = TreeBuilder::new(&mut forest, "root")
+    /// #     .child("0")
+    /// #     .sibling("1")
+    /// #     .child("1-0")
+    /// #     .sibling("1-1");
+    /// # let child_1_1 = builder.current_id();
+    /// # let mut builder = builder
+    /// #     .child("1-1-0")
+    /// #     .sibling("1-1-1")
+    /// #     .sibling("1-1-2")
+    /// #     .parent()
+    /// #     .sibling("1-2")
+    /// #     .parent()
+    /// #     .sibling("2");
+    /// # let root = builder.root_id();
+    /// let before = r#"root
+    /// |-- 0
+    /// |-- 1
+    /// |   |-- 1-0
+    /// |   |-- 1-1
+    /// |   |   |-- 1-1-0
+    /// |   |   |-- 1-1-1
+    /// |   |   `-- 1-1-2
+    /// |   `-- 1-2
+    /// `-- 2"#;
+    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
+    /// assert_eq!(forest.debug_print(root).to_string(), before);
+    ///
+    /// // Remove "1-1" and its descendant.
+    /// // Data associated to nodes (4 string slices in this case)
+    /// // are simply discarded.
+    /// let mut node = forest.node_mut(child_1_1)
+    ///     .expect("the node must be alive");
+    /// node.remove();
+    ///
+    /// let after_remove = r#"root
+    /// |-- 0
+    /// |-- 1
+    /// |   |-- 1-0
+    /// |   `-- 1-2
+    /// `-- 2"#;
+    /// assert_eq!(forest.debug_print(root).to_string(), after_remove);
+    /// # }
+    /// ```
+    #[inline]
+    pub fn remove(self) {
+        self.forest.remove(self.id);
+    }
 }
 
 /// Returns an iterator with the first element skipped.
