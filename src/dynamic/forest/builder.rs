@@ -90,7 +90,7 @@ impl<'a, T: Clone> TreeBuilder<'a, T> {
     }
 
     /// Appends a child node to the current node, and changes the current node to it.
-    pub fn child(mut self, data: T) -> Self {
+    pub fn child(&mut self, data: T) -> &mut Self {
         let new = self
             .forest
             .create_insert(data, InsertAs::LastChildOf(self.current));
@@ -99,7 +99,7 @@ impl<'a, T: Clone> TreeBuilder<'a, T> {
     }
 
     /// Adds a next sibling node to the current node, and changes the current node to it.
-    pub fn sibling(mut self, data: T) -> Self {
+    pub fn sibling(&mut self, data: T) -> &mut Self {
         let new = self
             .forest
             .create_insert(data, InsertAs::NextSiblingOf(self.current));
@@ -108,7 +108,7 @@ impl<'a, T: Clone> TreeBuilder<'a, T> {
     }
 
     /// Tries to change the current node to the parent of the current node.
-    pub fn try_parent(mut self) -> Option<Self> {
+    pub fn try_parent(&mut self) -> Option<&mut Self> {
         let parent = self
             .forest
             .node(self.current)
@@ -123,7 +123,7 @@ impl<'a, T: Clone> TreeBuilder<'a, T> {
     /// # Panics
     ///
     /// Panics if the current node is the root of a tree.
-    pub fn parent(mut self) -> Self {
+    pub fn parent(&mut self) -> &mut Self {
         let parent = self
             .forest
             .node(self.current)
