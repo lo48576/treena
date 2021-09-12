@@ -524,6 +524,7 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// # Examples
     ///
     /// ```
+    /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root")
@@ -561,6 +562,7 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// `-- 1-2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_detach_root);
     /// assert_eq!(forest.debug_print(child_1).to_string(), after_detach_child_1);
+    /// # }
     /// ```
     #[inline]
     pub fn detach(&mut self) {
@@ -586,6 +588,7 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// # Examples
     ///
     /// ```
+    /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root")
@@ -623,6 +626,7 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// let after_detach_child_1 = "1";
     /// assert_eq!(forest.debug_print(root).to_string(), after_detach_root);
     /// assert_eq!(forest.debug_print(child_1).to_string(), after_detach_child_1);
+    /// # }
     /// ```
     #[inline]
     pub fn detach_single(&mut self) -> Result<(), StructureError> {
@@ -634,6 +638,7 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// # Example
     ///
     /// ```
+    /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root")
@@ -672,6 +677,7 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// |   `-- 1-2
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_create);
+    /// # }
     /// ```
     #[inline]
     pub fn create_first_child(&mut self, data: T) -> NodeId {
@@ -683,6 +689,7 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// # Example
     ///
     /// ```
+    /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root")
@@ -721,6 +728,7 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// |   `-- new
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_create);
+    /// # }
     /// ```
     #[inline]
     pub fn create_last_child(&mut self, data: T) -> NodeId {
@@ -732,6 +740,7 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// # Example
     ///
     /// ```
+    /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root")
@@ -771,6 +780,7 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// |   `-- 1-2
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_create);
+    /// # }
     /// ```
     #[inline]
     pub fn create_prev_sibling(&mut self, data: T) -> NodeId {
@@ -782,6 +792,7 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// # Example
     ///
     /// ```
+    /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root")
@@ -821,6 +832,7 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// |-- new
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_create);
+    /// # }
     /// ```
     #[inline]
     pub fn create_next_sibling(&mut self, data: T) -> NodeId {
@@ -838,6 +850,7 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// Creating the first child by [`AdoptAs::FirstChild`]:
     ///
     /// ```
+    /// # #[cfg(feature = "debug-print")] {
     /// use treena::dynamic::AdoptAs;
     ///
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
@@ -878,11 +891,13 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// |   `-- 1-2
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_create);
+    /// # }
     /// ```
     ///
     /// Creating the last child by [`AdoptAs::LastChild`]:
     ///
     /// ```
+    /// # #[cfg(feature = "debug-print")] {
     /// use treena::dynamic::AdoptAs;
     ///
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
@@ -923,11 +938,13 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// |   `-- new
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_create);
+    /// # }
     /// ```
     ///
     /// Creating the previous child by [`AdoptAs::PreviousSibling`]:
     ///
     /// ```
+    /// # #[cfg(feature = "debug-print")] {
     /// use treena::dynamic::AdoptAs;
     ///
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
@@ -969,11 +986,13 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// |   `-- 1-2
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_create);
+    /// # }
     /// ```
     ///
     /// Creating the previous child by [`AdoptAs::PreviousSibling`]:
     ///
     /// ```
+    /// # #[cfg(feature = "debug-print")] {
     /// use treena::dynamic::AdoptAs;
     ///
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
@@ -1015,6 +1034,7 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// |-- new
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_create);
+    /// # }
     /// ```
     #[inline]
     pub fn create(&mut self, data: T, dest: AdoptAs) -> NodeId {
@@ -1040,6 +1060,7 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// `self` node.
     ///
     /// ```
+    /// # #[cfg(feature = "debug-print")] {
     /// use treena::dynamic::AdoptAs;
     ///
     /// # use treena::dynamic::forest::{Forest, TreeBuilder};
@@ -1090,6 +1111,7 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     /// |   `-- 1-1-2
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_adopt);
+    /// # }
     /// ```
     pub fn adopt(&mut self, node: NodeId, dest: AdoptAs) {
         self.try_adopt(node, dest)
