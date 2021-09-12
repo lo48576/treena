@@ -86,9 +86,11 @@ impl Hierarchy {
     ///
     /// # Panics
     ///
-    /// Panics if the `parent` is `None` while both of `prev_child` and
-    /// `next_child` are `Some`, since nodes cannot have siblings without
-    /// having a parent.
+    /// * Panics if the `parent` is `None` while both of `prev_child` and
+    ///   `next_child` are `Some`, since nodes cannot have siblings without
+    ///   having a parent.
+    /// * Panics if `prev_child` and `next_child` are both `Some(_)` and are
+    ///   identical, since a node cannot be adjacent sibling of itself.
     fn connect_triangle(
         &mut self,
         parent: Option<NodeId>,
@@ -97,6 +99,12 @@ impl Hierarchy {
     ) {
         if parent.is_none() && prev_child.is_some() && next_child.is_some() {
             panic!("[precondition] nodes cannot have siblings without having a parent");
+        }
+        if prev_child
+            .zip(next_child)
+            .map_or(false, |(prev, next)| prev == next)
+        {
+            panic!("[precondition] a node cannot be adjacent sibling of itself");
         }
 
         if let Some(prev_child) = prev_child {
@@ -148,15 +156,14 @@ impl Hierarchy {
                     .expect("[precondition] the given `parent` node must be alive");
                 // `next_child` is the first child (if available).
                 parent_nbs.first_child = next_child;
-            }
-            if next_child.is_none() {
+            } else if next_child.is_none() {
                 // `prev_child` has no next sibling. This means that
                 // `prev_child` is the last child of the parent.
                 let first_child = self
                     .neighbors(parent)
                     .expect("[precondition] the given `parent` node must be alive")
                     .first_child()
-                    .expect("[consistency] the `parent` must have a child");
+                    .expect("[consistency] `parent` must have a child including `prev_child`");
                 if let Some(prev_child) = prev_child {
                     self.neighbors_mut(first_child)
                         .expect("[precondition] the first child of the `parent` must be alive")
@@ -772,15 +779,24 @@ impl SiblingsRange {
                     .neighbors_mut(child)
                     .expect("[consistency] nodes in the range must be alive");
                 child_nbs.parent = Some(parent);
+                if child == self.last {
+                    break;
+                }
                 child_opt = child_nbs.next_sibling();
             }
         }
 
         // Connect the first node in the range to the previous sibling.
-        hier.connect_triangle(Some(parent), prev_sibling, Some(self.first));
+        // If they are identical, no need to update neighbors info.
+        if prev_sibling != Some(self.first) {
+            hier.connect_triangle(Some(parent), prev_sibling, Some(self.first));
+        }
 
         // Connect the last node in the range to the next sibling.
-        hier.connect_triangle(Some(parent), Some(self.last), next_sibling);
+        // If they are identical, no need to update neighbors info.
+        if next_sibling != Some(self.last) {
+            hier.connect_triangle(Some(parent), Some(self.last), next_sibling);
+        }
 
         Ok(())
     }
