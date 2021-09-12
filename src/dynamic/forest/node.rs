@@ -1,5 +1,7 @@
 //! Node.
 
+#[cfg(feature = "debug-print")]
+use crate::dynamic::forest::debug_print::DebugPrint;
 use crate::dynamic::forest::traverse::{Ancestors, DepthFirstTraverse, Siblings};
 use crate::dynamic::forest::StructureError;
 use crate::dynamic::{AdoptAs, Forest, InsertAs, NodeId};
@@ -403,6 +405,15 @@ impl<'a, T> Node<'a, T> {
     pub fn preceding_siblings_or_self(&self) -> Siblings<'a, T> {
         Siblings::with_last_sibling(self)
     }
+
+    /// Returns the pretty-printable proxy object to the node and descendants.
+    ///
+    /// This requires `debug-print` feature to be enabled.
+    #[cfg(feature = "debug-print")]
+    #[cfg_attr(feature = "docsrs", doc(cfg(feature = "debug-print")))]
+    pub fn debug_print(&self) -> DebugPrint<'_, T> {
+        DebugPrint::new(*self)
+    }
 }
 
 impl<T> Clone for Node<'_, T> {
@@ -485,6 +496,15 @@ impl<'a, T> NodeMut<'a, T> {
         self.forest
             .data_mut(self.id)
             .expect("[validity] the node has been checked to be alive")
+    }
+
+    /// Returns the pretty-printable proxy object to the node and descendants.
+    ///
+    /// This requires `debug-print` feature to be enabled.
+    #[cfg(feature = "debug-print")]
+    #[cfg_attr(feature = "docsrs", doc(cfg(feature = "debug-print")))]
+    pub fn debug_print(&self) -> DebugPrint<'_, T> {
+        DebugPrint::new(self.node())
     }
 }
 

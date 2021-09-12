@@ -1,6 +1,8 @@
 //! Forest.
 
 mod builder;
+#[cfg(any(doctest, feature = "debug-print"))]
+pub mod debug_print;
 mod node;
 pub mod traverse;
 
@@ -263,6 +265,18 @@ impl<T> Forest<T> {
     #[inline]
     pub fn insert(&mut self, node: NodeId, dest: InsertAs) -> Result<(), StructureError> {
         self.hierarchy.insert(node, dest)
+    }
+
+    /// Returns the pretty-printable proxy object to the node and descendants.
+    ///
+    /// This requires `debug-print` feature to be enabled.
+    #[cfg(feature = "debug-print")]
+    #[cfg_attr(feature = "docsrs", doc(cfg(feature = "debug-print")))]
+    pub fn debug_print(&self, id: NodeId) -> debug_print::DebugPrint<'_, T> {
+        let node = self
+            .node(id)
+            .expect("[precondition] the node must be alive");
+        debug_print::DebugPrint::new(node)
     }
 }
 
