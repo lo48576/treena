@@ -94,7 +94,7 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use treena::dynamic::Forest;
+    /// use treena::dynamic::{AdoptAs, Forest};
     ///
     /// let mut forest = Forest::new();
     /// let id = forest.create_root(42);
@@ -108,7 +108,7 @@ impl<T> Forest<T> {
     /// assert_eq!(*node.data(), 314);
     ///
     /// // Can create nodes as neighbors.
-    /// node.create_last_child(141421356);
+    /// node.create(141421356, AdoptAs::LastChild);
     ///
     /// let node = forest.node(id).expect("should never fail: node exists");
     /// assert_eq!(
