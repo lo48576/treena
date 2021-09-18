@@ -18,6 +18,7 @@ pub struct Node<'a, T> {
     id: NodeId,
 }
 
+/// Node creation.
 impl<'a, T> Node<'a, T> {
     /// Creates a new `Node` object.
     #[must_use]
@@ -27,7 +28,10 @@ impl<'a, T> Node<'a, T> {
         }
         Some(Self { forest, id })
     }
+}
 
+/// Data and property access.
+impl<'a, T> Node<'a, T> {
     /// Returns a reference to the forest.
     #[inline]
     #[must_use]
@@ -50,7 +54,10 @@ impl<'a, T> Node<'a, T> {
             .data(self.id)
             .expect("[validity] the node has been checked to be alive")
     }
+}
 
+/// Neighbors access.
+impl<'a, T> Node<'a, T> {
     /// Returns the node ID of the parent.
     #[must_use]
     pub fn parent_id(&self) -> Option<NodeId> {
@@ -160,7 +167,10 @@ impl<'a, T> Node<'a, T> {
                 )
             })
     }
+}
 
+/// Iteration.
+impl<'a, T> Node<'a, T> {
     /// Returns an depth-first traversal iterator of a subtree.
     ///
     /// # Examples
@@ -405,7 +415,10 @@ impl<'a, T> Node<'a, T> {
     pub fn preceding_siblings_or_self(&self) -> Siblings<'a, T> {
         Siblings::with_last_sibling(self)
     }
+}
 
+/// Debug printing.
+impl<'a, T> Node<'a, T> {
     /// Returns the pretty-printable proxy object to the node and descendants.
     ///
     /// This requires `debug-print` feature to be enabled.
@@ -444,6 +457,7 @@ pub struct NodeMut<'a, T> {
     id: NodeId,
 }
 
+/// Creation.
 impl<'a, T> NodeMut<'a, T> {
     /// Creates a new `Node` object.
     #[must_use]
@@ -453,7 +467,10 @@ impl<'a, T> NodeMut<'a, T> {
         }
         Some(Self { forest, id })
     }
+}
 
+/// Data and property access.
+impl<'a, T> NodeMut<'a, T> {
     /// Returns the immutable reference to the node.
     pub fn node(&self) -> Node<'_, T> {
         Node::new(self.forest, self.id)
@@ -497,144 +514,10 @@ impl<'a, T> NodeMut<'a, T> {
             .data_mut(self.id)
             .expect("[validity] the node has been checked to be alive")
     }
-
-    /// Returns the pretty-printable proxy object to the node and descendants.
-    ///
-    /// This requires `debug-print` feature to be enabled.
-    #[cfg(feature = "debug-print")]
-    #[cfg_attr(feature = "docsrs", doc(cfg(feature = "debug-print")))]
-    pub fn debug_print(&self) -> DebugPrint<'_, T> {
-        DebugPrint::new(self.node())
-    }
 }
 
+/// Neighbor node creation.
 impl<'a, T: Clone> NodeMut<'a, T> {
-    /// Detaches the tree from neighbors.
-    ///
-    /// Tree structure under the given node will be preserved.
-    /// The detached node will become a root node.
-    ///
-    /// If you want to detach not subtree but single node, use
-    /// [`detach_single`][`Self::detach_single`] method.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the node is not alive.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # #[cfg(feature = "debug-print")] {
-    /// # use treena::dynamic::forest::{Forest, TreeBuilder};
-    /// # let mut forest = Forest::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
-    /// # let child_1 = builder
-    /// #     .child("0")
-    /// #     .sibling("1")
-    /// #     .current_id();
-    /// # builder
-    /// #     .child("1-0")
-    /// #     .sibling("1-1")
-    /// #     .sibling("1-2")
-    /// #     .parent()
-    /// #     .sibling("2");
-    /// # let root = builder.root_id();
-    /// let before = r#"root
-    /// |-- 0
-    /// |-- 1
-    /// |   |-- 1-0
-    /// |   |-- 1-1
-    /// |   `-- 1-2
-    /// `-- 2"#;
-    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
-    /// assert_eq!(forest.debug_print(root).to_string(), before);
-    ///
-    /// let mut node = forest.node_mut(child_1)
-    ///     .expect("the node must be alive");
-    /// // Detach the node "1".
-    /// node.detach();
-    ///
-    /// let after_detach_root = r#"root
-    /// |-- 0
-    /// `-- 2"#;
-    /// let after_detach_child_1 = r#"1
-    /// |-- 1-0
-    /// |-- 1-1
-    /// `-- 1-2"#;
-    /// assert_eq!(forest.debug_print(root).to_string(), after_detach_root);
-    /// assert_eq!(forest.debug_print(child_1).to_string(), after_detach_child_1);
-    /// # }
-    /// ```
-    #[inline]
-    pub fn detach(&mut self) {
-        self.forest.hierarchy.detach(self.id);
-    }
-
-    /// Detaches the node from neighbors and make it orphan root.
-    ///
-    /// Children are inserted to the place where the detached node was.
-    ///
-    /// If you want to detach not single node but subtree, use
-    /// [`detach`][`Self::detach`] method.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`StructureError::SiblingsWithoutParent`] when the node has
-    /// multiple children but has no parent.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the node is not alive.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # #[cfg(feature = "debug-print")] {
-    /// # use treena::dynamic::forest::{Forest, TreeBuilder};
-    /// # let mut forest = Forest::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
-    /// # let child_1 = builder
-    /// #     .child("0")
-    /// #     .sibling("1")
-    /// #     .current_id();
-    /// # builder
-    /// #     .child("1-0")
-    /// #     .sibling("1-1")
-    /// #     .sibling("1-2")
-    /// #     .parent()
-    /// #     .sibling("2");
-    /// # let root = builder.root_id();
-    /// let before = r#"root
-    /// |-- 0
-    /// |-- 1
-    /// |   |-- 1-0
-    /// |   |-- 1-1
-    /// |   `-- 1-2
-    /// `-- 2"#;
-    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
-    /// assert_eq!(forest.debug_print(root).to_string(), before);
-    ///
-    /// let mut node = forest.node_mut(child_1)
-    ///     .expect("the node must be alive");
-    /// // Detach the single node "1".
-    /// node.detach_single();
-    ///
-    /// let after_detach_root = r#"root
-    /// |-- 0
-    /// |-- 1-0
-    /// |-- 1-1
-    /// |-- 1-2
-    /// `-- 2"#;
-    /// let after_detach_child_1 = "1";
-    /// assert_eq!(forest.debug_print(root).to_string(), after_detach_root);
-    /// assert_eq!(forest.debug_print(child_1).to_string(), after_detach_child_1);
-    /// # }
-    /// ```
-    #[inline]
-    pub fn detach_single(&mut self) -> Result<(), StructureError> {
-        self.forest.hierarchy.detach_single(self.id)
-    }
-
     /// Creates a new child node as the first child.
     ///
     /// # Example
@@ -1051,7 +934,10 @@ impl<'a, T: Clone> NodeMut<'a, T> {
         self.forest
             .create_insert(data, dest.insert_with_anchor(self.id))
     }
+}
 
+/// Node insertion without creation.
+impl<'a, T> NodeMut<'a, T> {
     /// Detaches the given node and inserts to the given place near `self` node.
     ///
     /// # Panics
@@ -1146,6 +1032,135 @@ impl<'a, T: Clone> NodeMut<'a, T> {
         self.forest
             .hierarchy
             .insert(node, dest.insert_with_anchor(self.id))
+    }
+}
+
+/// Detach and/or removal.
+impl<'a, T> NodeMut<'a, T> {
+    /// Detaches the tree from neighbors.
+    ///
+    /// Tree structure under the given node will be preserved.
+    /// The detached node will become a root node.
+    ///
+    /// If you want to detach not subtree but single node, use
+    /// [`detach_single`][`Self::detach_single`] method.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node is not alive.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #[cfg(feature = "debug-print")] {
+    /// # use treena::dynamic::forest::{Forest, TreeBuilder};
+    /// # let mut forest = Forest::new();
+    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let child_1 = builder
+    /// #     .child("0")
+    /// #     .sibling("1")
+    /// #     .current_id();
+    /// # builder
+    /// #     .child("1-0")
+    /// #     .sibling("1-1")
+    /// #     .sibling("1-2")
+    /// #     .parent()
+    /// #     .sibling("2");
+    /// # let root = builder.root_id();
+    /// let before = r#"root
+    /// |-- 0
+    /// |-- 1
+    /// |   |-- 1-0
+    /// |   |-- 1-1
+    /// |   `-- 1-2
+    /// `-- 2"#;
+    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
+    /// assert_eq!(forest.debug_print(root).to_string(), before);
+    ///
+    /// let mut node = forest.node_mut(child_1)
+    ///     .expect("the node must be alive");
+    /// // Detach the node "1".
+    /// node.detach();
+    ///
+    /// let after_detach_root = r#"root
+    /// |-- 0
+    /// `-- 2"#;
+    /// let after_detach_child_1 = r#"1
+    /// |-- 1-0
+    /// |-- 1-1
+    /// `-- 1-2"#;
+    /// assert_eq!(forest.debug_print(root).to_string(), after_detach_root);
+    /// assert_eq!(forest.debug_print(child_1).to_string(), after_detach_child_1);
+    /// # }
+    /// ```
+    #[inline]
+    pub fn detach(&mut self) {
+        self.forest.hierarchy.detach(self.id);
+    }
+
+    /// Detaches the node from neighbors and make it orphan root.
+    ///
+    /// Children are inserted to the place where the detached node was.
+    ///
+    /// If you want to detach not single node but subtree, use
+    /// [`detach`][`Self::detach`] method.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StructureError::SiblingsWithoutParent`] when the node has
+    /// multiple children but has no parent.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node is not alive.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #[cfg(feature = "debug-print")] {
+    /// # use treena::dynamic::forest::{Forest, TreeBuilder};
+    /// # let mut forest = Forest::new();
+    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let child_1 = builder
+    /// #     .child("0")
+    /// #     .sibling("1")
+    /// #     .current_id();
+    /// # builder
+    /// #     .child("1-0")
+    /// #     .sibling("1-1")
+    /// #     .sibling("1-2")
+    /// #     .parent()
+    /// #     .sibling("2");
+    /// # let root = builder.root_id();
+    /// let before = r#"root
+    /// |-- 0
+    /// |-- 1
+    /// |   |-- 1-0
+    /// |   |-- 1-1
+    /// |   `-- 1-2
+    /// `-- 2"#;
+    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
+    /// assert_eq!(forest.debug_print(root).to_string(), before);
+    ///
+    /// let mut node = forest.node_mut(child_1)
+    ///     .expect("the node must be alive");
+    /// // Detach the single node "1".
+    /// node.detach_single();
+    ///
+    /// let after_detach_root = r#"root
+    /// |-- 0
+    /// |-- 1-0
+    /// |-- 1-1
+    /// |-- 1-2
+    /// `-- 2"#;
+    /// let after_detach_child_1 = "1";
+    /// assert_eq!(forest.debug_print(root).to_string(), after_detach_root);
+    /// assert_eq!(forest.debug_print(child_1).to_string(), after_detach_child_1);
+    /// # }
+    /// ```
+    #[inline]
+    pub fn detach_single(&mut self) -> Result<(), StructureError> {
+        self.forest.hierarchy.detach_single(self.id)
     }
 
     /// Removes the subtree from the forest.
@@ -1372,6 +1387,18 @@ impl<'a, T: Clone> NodeMut<'a, T> {
     #[inline]
     pub fn remove(self) {
         self.forest.remove(self.id);
+    }
+}
+
+/// Debug printing.
+impl<'a, T> NodeMut<'a, T> {
+    /// Returns the pretty-printable proxy object to the node and descendants.
+    ///
+    /// This requires `debug-print` feature to be enabled.
+    #[cfg(feature = "debug-print")]
+    #[cfg_attr(feature = "docsrs", doc(cfg(feature = "debug-print")))]
+    pub fn debug_print(&self) -> DebugPrint<'_, T> {
+        DebugPrint::new(self.node())
     }
 }
 

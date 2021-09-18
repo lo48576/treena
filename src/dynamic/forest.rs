@@ -32,6 +32,7 @@ pub struct Forest<T> {
     data: Vec<Option<T>>,
 }
 
+/// Forest creation.
 impl<T> Forest<T> {
     /// Creates a new empty forest.
     ///
@@ -50,7 +51,10 @@ impl<T> Forest<T> {
     pub fn new() -> Self {
         Self::default()
     }
+}
 
+/// Individual node access.
+impl<T> Forest<T> {
     /// Returns true if the node exists and is not yet removed.
     #[must_use]
     fn is_alive(&self, id: NodeId) -> bool {
@@ -166,129 +170,100 @@ impl<T> Forest<T> {
     fn neighbors(&self, id: NodeId) -> Option<&Neighbors> {
         self.hierarchy.neighbors(id)
     }
+}
 
-    /// Detaches the tree from neighbors.
-    ///
-    /// Tree structure under the given node will be preserved.
-    /// The detached node will become a root node.
-    ///
-    /// If you want to detach not subtree but single node, use
-    /// [`detach_single`][`Self::detach_single`] method.
+/// Node creation and/or insertion.
+impl<T: Clone> Forest<T> {
+    /// Creates a new root node.
     ///
     /// # Panics
     ///
-    /// Panics if the node is not alive.
+    /// Panics if the node ID overflows.
     ///
     /// # Examples
     ///
     /// ```
-    /// # #[cfg(feature = "debug-print")] {
-    /// # use treena::dynamic::forest::{Forest, TreeBuilder};
-    /// # let mut forest = Forest::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
-    /// # let child_1 = builder
-    /// #     .child("0")
-    /// #     .sibling("1")
-    /// #     .current_id();
-    /// # builder
-    /// #     .child("1-0")
-    /// #     .sibling("1-1")
-    /// #     .sibling("1-2")
-    /// #     .parent()
-    /// #     .sibling("2");
-    /// # let root = builder.root_id();
-    /// let before = r#"root
-    /// |-- 0
-    /// |-- 1
-    /// |   |-- 1-0
-    /// |   |-- 1-1
-    /// |   `-- 1-2
-    /// `-- 2"#;
-    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
-    /// assert_eq!(forest.debug_print(root).to_string(), before);
+    /// use treena::dynamic::Forest;
     ///
-    /// // Detach the node "1".
-    /// forest.detach(child_1);
-    ///
-    /// let after_detach_root = r#"root
-    /// |-- 0
-    /// `-- 2"#;
-    /// let after_detach_child_1 = r#"1
-    /// |-- 1-0
-    /// |-- 1-1
-    /// `-- 1-2"#;
-    /// assert_eq!(forest.debug_print(root).to_string(), after_detach_root);
-    /// assert_eq!(forest.debug_print(child_1).to_string(), after_detach_child_1);
-    /// # }
+    /// let mut forest = Forest::new();
+    /// let id = forest.create_root(42);
+    /// assert_eq!(forest.data(id).copied(), Some(42));
+    /// assert!(
+    ///     forest
+    ///         .node(id)
+    ///         .expect("should never fail: node exists")
+    ///         .parent_id()
+    ///         .is_none(),
+    ///     "the root node does not have a parent"
+    /// );
     /// ```
-    #[inline]
-    pub fn detach(&mut self, node: NodeId) {
-        self.hierarchy.detach(node);
+    ///
+    /// The newly added root node has no connections between other trees.
+    ///
+    /// ```
+    /// use treena::dynamic::Forest;
+    ///
+    /// let mut forest = Forest::new();
+    /// let another_root = forest.create_root(42);
+    ///
+    /// let root = forest.create_root(314);
+    ///
+    /// let root_node = forest.node(root).expect("should never fail: node exists");
+    /// assert_eq!(*root_node.data(), 314);
+    /// assert!(
+    ///     root_node.parent_id().is_none(),
+    ///     "the root node does not have a parent"
+    /// );
+    /// assert!(
+    ///     root_node.next_sibling_id().is_none(),
+    ///     "the root node does not have siblings"
+    /// );
+    /// assert!(
+    ///     root_node.prev_sibling_id().is_none(),
+    ///     "the root node does not have siblings"
+    /// );
+    /// assert!(
+    ///     root_node.first_child_id().is_none(),
+    ///     "the root node does not have children"
+    /// );
+    /// assert!(
+    ///     root_node.last_child_id().is_none(),
+    ///     "the root node does not have children"
+    /// );
+    /// ```
+    pub fn create_root(&mut self, data: T) -> NodeId {
+        let new_id = self.hierarchy.create_root();
+        assert_eq!(
+            self.data.len(),
+            new_id.get(),
+            "[consistency] node ID must be able to be used as an index for the vec"
+        );
+        self.data.push(Some(data));
+
+        new_id
     }
 
-    /// Detaches the node from neighbors and make it orphan root.
+    /// Creates a node and inserts it to the target position.
     ///
-    /// Children are inserted to the place where the detached node was.
+    /// Returns the node ID of the newly created node.
     ///
-    /// If you want to detach not single node but subtree, use
-    /// [`detach`][`Self::detach`] method.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`StructureError::SiblingsWithoutParent`] when the node has
-    /// multiple children but has no parent.
+    /// To see how [`InsertAs`] works, see [`insert`][`Self::insert`] method.
     ///
     /// # Panics
     ///
-    /// Panics if the node is not alive.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # #[cfg(feature = "debug-print")] {
-    /// # use treena::dynamic::forest::{Forest, TreeBuilder};
-    /// # let mut forest = Forest::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
-    /// # let child_1 = builder
-    /// #     .child("0")
-    /// #     .sibling("1")
-    /// #     .current_id();
-    /// # builder
-    /// #     .child("1-0")
-    /// #     .sibling("1-1")
-    /// #     .sibling("1-2")
-    /// #     .parent()
-    /// #     .sibling("2");
-    /// # let root = builder.root_id();
-    /// let before = r#"root
-    /// |-- 0
-    /// |-- 1
-    /// |   |-- 1-0
-    /// |   |-- 1-1
-    /// |   `-- 1-2
-    /// `-- 2"#;
-    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
-    /// assert_eq!(forest.debug_print(root).to_string(), before);
-    ///
-    /// // Detach the single node "1".
-    /// forest.detach_single(child_1);
-    ///
-    /// let after_detach_root = r#"root
-    /// |-- 0
-    /// |-- 1-0
-    /// |-- 1-1
-    /// |-- 1-2
-    /// `-- 2"#;
-    /// let after_detach_child_1 = "1";
-    /// assert_eq!(forest.debug_print(root).to_string(), after_detach_root);
-    /// assert_eq!(forest.debug_print(child_1).to_string(), after_detach_child_1);
-    /// # }
-    /// ```
+    /// Panics if the node (the anchor of the destination) is not alive.
     #[inline]
-    pub fn detach_single(&mut self, node: NodeId) -> Result<(), StructureError> {
-        self.hierarchy.detach_single(node)
-    }
+    pub fn create_insert(&mut self, data: T, dest: InsertAs) -> NodeId {
+        let new_id = self.create_root(data);
+        self.insert(new_id, dest)
+            .expect("[consistency] newly created node is independent from the destination");
 
+        new_id
+    }
+}
+
+/// Detaching and insertion.
+impl<T> Forest<T> {
     /// Detaches and inserts the given node to the target position.
     ///
     /// # Panics
@@ -502,6 +477,131 @@ impl<T> Forest<T> {
     #[inline]
     pub fn insert(&mut self, node: NodeId, dest: InsertAs) -> Result<(), StructureError> {
         self.hierarchy.insert(node, dest)
+    }
+}
+
+/// Detaching and/or removal.
+impl<T> Forest<T> {
+    /// Detaches the tree from neighbors.
+    ///
+    /// Tree structure under the given node will be preserved.
+    /// The detached node will become a root node.
+    ///
+    /// If you want to detach not subtree but single node, use
+    /// [`detach_single`][`Self::detach_single`] method.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node is not alive.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #[cfg(feature = "debug-print")] {
+    /// # use treena::dynamic::forest::{Forest, TreeBuilder};
+    /// # let mut forest = Forest::new();
+    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let child_1 = builder
+    /// #     .child("0")
+    /// #     .sibling("1")
+    /// #     .current_id();
+    /// # builder
+    /// #     .child("1-0")
+    /// #     .sibling("1-1")
+    /// #     .sibling("1-2")
+    /// #     .parent()
+    /// #     .sibling("2");
+    /// # let root = builder.root_id();
+    /// let before = r#"root
+    /// |-- 0
+    /// |-- 1
+    /// |   |-- 1-0
+    /// |   |-- 1-1
+    /// |   `-- 1-2
+    /// `-- 2"#;
+    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
+    /// assert_eq!(forest.debug_print(root).to_string(), before);
+    ///
+    /// // Detach the node "1".
+    /// forest.detach(child_1);
+    ///
+    /// let after_detach_root = r#"root
+    /// |-- 0
+    /// `-- 2"#;
+    /// let after_detach_child_1 = r#"1
+    /// |-- 1-0
+    /// |-- 1-1
+    /// `-- 1-2"#;
+    /// assert_eq!(forest.debug_print(root).to_string(), after_detach_root);
+    /// assert_eq!(forest.debug_print(child_1).to_string(), after_detach_child_1);
+    /// # }
+    /// ```
+    #[inline]
+    pub fn detach(&mut self, node: NodeId) {
+        self.hierarchy.detach(node);
+    }
+
+    /// Detaches the node from neighbors and make it orphan root.
+    ///
+    /// Children are inserted to the place where the detached node was.
+    ///
+    /// If you want to detach not single node but subtree, use
+    /// [`detach`][`Self::detach`] method.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`StructureError::SiblingsWithoutParent`] when the node has
+    /// multiple children but has no parent.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node is not alive.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #[cfg(feature = "debug-print")] {
+    /// # use treena::dynamic::forest::{Forest, TreeBuilder};
+    /// # let mut forest = Forest::new();
+    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let child_1 = builder
+    /// #     .child("0")
+    /// #     .sibling("1")
+    /// #     .current_id();
+    /// # builder
+    /// #     .child("1-0")
+    /// #     .sibling("1-1")
+    /// #     .sibling("1-2")
+    /// #     .parent()
+    /// #     .sibling("2");
+    /// # let root = builder.root_id();
+    /// let before = r#"root
+    /// |-- 0
+    /// |-- 1
+    /// |   |-- 1-0
+    /// |   |-- 1-1
+    /// |   `-- 1-2
+    /// `-- 2"#;
+    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
+    /// assert_eq!(forest.debug_print(root).to_string(), before);
+    ///
+    /// // Detach the single node "1".
+    /// forest.detach_single(child_1);
+    ///
+    /// let after_detach_root = r#"root
+    /// |-- 0
+    /// |-- 1-0
+    /// |-- 1-1
+    /// |-- 1-2
+    /// `-- 2"#;
+    /// let after_detach_child_1 = "1";
+    /// assert_eq!(forest.debug_print(root).to_string(), after_detach_root);
+    /// assert_eq!(forest.debug_print(child_1).to_string(), after_detach_child_1);
+    /// # }
+    /// ```
+    #[inline]
+    pub fn detach_single(&mut self, node: NodeId) -> Result<(), StructureError> {
+        self.hierarchy.detach_single(node)
     }
 
     /// Removes the subtree from the forest.
@@ -779,7 +879,11 @@ impl<T> Forest<T> {
     pub fn remove(&mut self, node: NodeId) {
         self.remove_hooked(node, drop);
     }
+}
 
+/// Debug printing.
+#[cfg(feature = "debug-print")]
+impl<T> Forest<T> {
     /// Returns the pretty-printable proxy object to the node and descendants.
     ///
     /// This requires `debug-print` feature to be enabled.
@@ -790,95 +894,6 @@ impl<T> Forest<T> {
             .node(id)
             .expect("[precondition] the node must be alive");
         debug_print::DebugPrint::new(node)
-    }
-}
-
-impl<T: Clone> Forest<T> {
-    /// Creates a new root node.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the node ID overflows.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use treena::dynamic::Forest;
-    ///
-    /// let mut forest = Forest::new();
-    /// let id = forest.create_root(42);
-    /// assert_eq!(forest.data(id).copied(), Some(42));
-    /// assert!(
-    ///     forest
-    ///         .node(id)
-    ///         .expect("should never fail: node exists")
-    ///         .parent_id()
-    ///         .is_none(),
-    ///     "the root node does not have a parent"
-    /// );
-    /// ```
-    ///
-    /// The newly added root node has no connections between other trees.
-    ///
-    /// ```
-    /// use treena::dynamic::Forest;
-    ///
-    /// let mut forest = Forest::new();
-    /// let another_root = forest.create_root(42);
-    ///
-    /// let root = forest.create_root(314);
-    ///
-    /// let root_node = forest.node(root).expect("should never fail: node exists");
-    /// assert_eq!(*root_node.data(), 314);
-    /// assert!(
-    ///     root_node.parent_id().is_none(),
-    ///     "the root node does not have a parent"
-    /// );
-    /// assert!(
-    ///     root_node.next_sibling_id().is_none(),
-    ///     "the root node does not have siblings"
-    /// );
-    /// assert!(
-    ///     root_node.prev_sibling_id().is_none(),
-    ///     "the root node does not have siblings"
-    /// );
-    /// assert!(
-    ///     root_node.first_child_id().is_none(),
-    ///     "the root node does not have children"
-    /// );
-    /// assert!(
-    ///     root_node.last_child_id().is_none(),
-    ///     "the root node does not have children"
-    /// );
-    /// ```
-    pub fn create_root(&mut self, data: T) -> NodeId {
-        let new_id = self.hierarchy.create_root();
-        assert_eq!(
-            self.data.len(),
-            new_id.get(),
-            "[consistency] node ID must be able to be used as an index for the vec"
-        );
-        self.data.push(Some(data));
-
-        new_id
-    }
-
-    /// Creates a node and inserts it to the target position.
-    ///
-    /// Returns the node ID of the newly created node.
-    ///
-    /// To see how [`InsertAs`] works, see [`insert`][`Self::insert`] method.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the node (the anchor of the destination) is not alive.
-    #[inline]
-    pub fn create_insert(&mut self, data: T, dest: InsertAs) -> NodeId {
-        let new_id = self.create_root(data);
-        self.insert(new_id, dest)
-            .expect("[consistency] newly created node is independent from the destination");
-
-        new_id
     }
 }
 
