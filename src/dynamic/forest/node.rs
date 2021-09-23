@@ -171,7 +171,7 @@ impl<'a, T> Node<'a, T> {
 
 /// Iteration.
 impl<'a, T> Node<'a, T> {
-    /// Returns an depth-first traversal iterator of a subtree.
+    /// Returns a depth-first traversal iterator of a subtree.
     ///
     /// # Examples
     ///
