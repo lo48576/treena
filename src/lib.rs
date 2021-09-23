@@ -1,4 +1,4 @@
-//! Treena: Tree stored in an arena.
+//! Treena: Forest stored in an arena.
 #![forbid(unsafe_code)]
 #![warn(rust_2018_idioms)]
 // `clippy::missing_docs_in_private_items` implies `missing_docs`.

@@ -2,9 +2,9 @@
 
 mod builder;
 #[cfg(any(feature = "debug-print"))]
-pub mod debug_print;
+mod debug_print;
 mod node;
-pub mod traverse;
+pub(crate) mod traverse;
 
 use core::fmt;
 
@@ -15,6 +15,8 @@ use crate::dynamic::hierarchy::{Hierarchy, Neighbors};
 use crate::dynamic::{InsertAs, NodeId};
 
 pub use self::builder::TreeBuilder;
+#[cfg(any(feature = "debug-print"))]
+pub use self::debug_print::DebugPrint;
 pub use self::node::{Node, NodeMut};
 
 /// Forest.
@@ -290,7 +292,7 @@ impl<T> Forest<T> {
     /// # #[cfg(feature = "debug-print")] {
     /// use treena::dynamic::InsertAs;
     ///
-    /// # use treena::dynamic::forest::{Forest, TreeBuilder};
+    /// # use treena::dynamic::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
     /// # let child_1 = builder
@@ -338,7 +340,7 @@ impl<T> Forest<T> {
     /// # #[cfg(feature = "debug-print")] {
     /// use treena::dynamic::InsertAs;
     ///
-    /// # use treena::dynamic::forest::{Forest, TreeBuilder};
+    /// # use treena::dynamic::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
     /// # let child_1 = builder
@@ -386,7 +388,7 @@ impl<T> Forest<T> {
     /// # #[cfg(feature = "debug-print")] {
     /// use treena::dynamic::InsertAs;
     ///
-    /// # use treena::dynamic::forest::{Forest, TreeBuilder};
+    /// # use treena::dynamic::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
     /// # let child_1 = builder
@@ -434,7 +436,7 @@ impl<T> Forest<T> {
     /// # #[cfg(feature = "debug-print")] {
     /// use treena::dynamic::InsertAs;
     ///
-    /// # use treena::dynamic::forest::{Forest, TreeBuilder};
+    /// # use treena::dynamic::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
     /// # let child_1 = builder
@@ -498,7 +500,7 @@ impl<T> Forest<T> {
     ///
     /// ```
     /// # #[cfg(feature = "debug-print")] {
-    /// # use treena::dynamic::forest::{Forest, TreeBuilder};
+    /// # use treena::dynamic::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
     /// # let child_1 = builder
@@ -561,7 +563,7 @@ impl<T> Forest<T> {
     ///
     /// ```
     /// # #[cfg(feature = "debug-print")] {
-    /// # use treena::dynamic::forest::{Forest, TreeBuilder};
+    /// # use treena::dynamic::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
     /// # let child_1 = builder
@@ -631,7 +633,7 @@ impl<T> Forest<T> {
     ///
     /// ```
     /// # #[cfg(feature = "debug-print")] {
-    /// # use treena::dynamic::forest::{Forest, TreeBuilder};
+    /// # use treena::dynamic::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
     /// # let child_1_1 = builder
@@ -738,7 +740,7 @@ impl<T> Forest<T> {
     ///
     /// ```
     /// # #[cfg(feature = "debug-print")] {
-    /// # use treena::dynamic::forest::{Forest, TreeBuilder};
+    /// # use treena::dynamic::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
     /// # let child_1_1 = builder
@@ -830,7 +832,7 @@ impl<T> Forest<T> {
     ///
     /// ```
     /// # #[cfg(feature = "debug-print")] {
-    /// # use treena::dynamic::forest::{Forest, TreeBuilder};
+    /// # use treena::dynamic::{Forest, TreeBuilder};
     /// # let mut forest = Forest::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
     /// # let child_1_1 = builder

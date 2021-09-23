@@ -8,8 +8,7 @@ use crate::dynamic::{InsertAs, NodeId};
 /// # Examples
 ///
 /// ```
-/// use treena::dynamic::forest::{Forest, TreeBuilder};
-/// use treena::dynamic::forest::traverse::DftEvent;
+/// use treena::dynamic::{DftEvent, Forest, TreeBuilder};
 ///
 /// let mut forest = Forest::new();
 /// let root = TreeBuilder::new(&mut forest, "root")
