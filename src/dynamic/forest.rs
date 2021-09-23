@@ -883,6 +883,283 @@ impl<T> Forest<T> {
     }
 }
 
+/// Iteration.
+impl<T> Forest<T> {
+    /// Returns a depth-first traversal iterator of a subtree.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node is not alive.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use treena::dynamic::{DftEvent, Forest, InsertAs};
+    ///
+    /// let mut forest = Forest::new();
+    /// let root = forest.create_root("root");
+    /// let child0 = forest.create_insert("0", InsertAs::LastChildOf(root));
+    /// forest.create_insert("0-0", InsertAs::LastChildOf(child0));
+    /// forest.create_insert("1", InsertAs::LastChildOf(root));
+    ///
+    /// assert_eq!(
+    ///     forest
+    ///         .depth_first_traverse(root)
+    ///         .map(|ev| ev.map(|node| *node.data()))
+    ///         .collect::<Vec<_>>(),
+    ///     &[
+    ///         DftEvent::Open("root"),
+    ///         DftEvent::Open("0"),
+    ///         DftEvent::Open("0-0"),
+    ///         DftEvent::Close("0-0"),
+    ///         DftEvent::Close("0"),
+    ///         DftEvent::Open("1"),
+    ///         DftEvent::Close("1"),
+    ///         DftEvent::Close("root"),
+    ///     ]
+    /// );
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn depth_first_traverse(&self, node: NodeId) -> traverse::DepthFirstTraverse<'_, T> {
+        self.node(node)
+            .expect("[precondition] node must be alive")
+            .depth_first_traverse()
+    }
+
+    /// Returns an iterator of ancestors, excluding this node.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node is not alive.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use treena::dynamic::{Forest, InsertAs};
+    ///
+    /// let mut forest = Forest::new();
+    /// let root = forest.create_root("root");
+    /// let child0 = forest.create_insert("0", InsertAs::LastChildOf(root));
+    /// let child00 = forest.create_insert("0-0", InsertAs::LastChildOf(child0));
+    ///
+    /// assert_eq!(
+    ///     forest
+    ///         .ancestors(child00)
+    ///         .map(|node| *node.data())
+    ///         .collect::<Vec<_>>(),
+    ///     &["0", "root"]
+    /// );
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn ancestors(&self, node: NodeId) -> traverse::Ancestors<'_, T> {
+        self.node(node)
+            .expect("[precondition] node must be alive")
+            .ancestors()
+    }
+
+    /// Returns an iterator of ancestors, including this node.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use treena::dynamic::{Forest, InsertAs};
+    ///
+    /// let mut forest = Forest::new();
+    /// let root = forest.create_root("root");
+    /// let child0 = forest.create_insert("0", InsertAs::LastChildOf(root));
+    /// let child00 = forest.create_insert("0-0", InsertAs::LastChildOf(child0));
+    ///
+    /// assert_eq!(
+    ///     forest
+    ///         .ancestors_or_self(child00)
+    ///         .map(|node| *node.data())
+    ///         .collect::<Vec<_>>(),
+    ///     &["0-0", "0", "root"]
+    /// );
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn ancestors_or_self(&self, node: NodeId) -> traverse::Ancestors<'_, T> {
+        self.node(node)
+            .expect("[precondition] node must be alive")
+            .ancestors_or_self()
+    }
+
+    /// Returns an iterator of children.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use treena::dynamic::{DftEvent, Forest, InsertAs};
+    ///
+    /// let mut forest = Forest::new();
+    /// let root = forest.create_root("root");
+    /// let child0 = forest.create_insert("0", InsertAs::LastChildOf(root));
+    /// let child00 = forest.create_insert("0-0", InsertAs::LastChildOf(child0));
+    /// forest.create_insert("1", InsertAs::LastChildOf(root));
+    /// forest.create_insert("2", InsertAs::LastChildOf(root));
+    ///
+    /// assert_eq!(
+    ///     forest
+    ///         .children(root)
+    ///         .map(|node| *node.data())
+    ///         .collect::<Vec<_>>(),
+    ///     &["0", "1", "2"]
+    /// );
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn children(&self, node: NodeId) -> traverse::Siblings<'_, T> {
+        self.node(node)
+            .expect("[precondition] node must be alive")
+            .children()
+    }
+
+    /// Returns an iterator of the following siblings, excluding this node.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use treena::dynamic::{Forest, InsertAs};
+    ///
+    /// let mut forest = Forest::new();
+    /// let root = forest.create_root("root");
+    /// let _child0 = forest.create_insert("0", InsertAs::LastChildOf(root));
+    /// let child1 = forest.create_insert("1", InsertAs::LastChildOf(root));
+    /// let _child2 = forest.create_insert("2", InsertAs::LastChildOf(root));
+    ///
+    /// assert_eq!(
+    ///     forest
+    ///         .following_siblings(child1)
+    ///         .map(|node| *node.data())
+    ///         .collect::<Vec<_>>(),
+    ///     &["2"]
+    /// );
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn following_siblings(&self, node: NodeId) -> traverse::Siblings<'_, T> {
+        self.node(node)
+            .expect("[precondition] node must be alive")
+            .following_siblings()
+    }
+
+    /// Returns an iterator of the following siblings, including this node.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use treena::dynamic::{Forest, InsertAs};
+    ///
+    /// let mut forest = Forest::new();
+    /// let root = forest.create_root("root");
+    /// let _child0 = forest.create_insert("0", InsertAs::LastChildOf(root));
+    /// let child1 = forest.create_insert("1", InsertAs::LastChildOf(root));
+    /// let _child2 = forest.create_insert("2", InsertAs::LastChildOf(root));
+    ///
+    /// assert_eq!(
+    ///     forest
+    ///         .following_siblings_or_self(child1)
+    ///         .map(|node| *node.data())
+    ///         .collect::<Vec<_>>(),
+    ///     &["1", "2"]
+    /// );
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn following_siblings_or_self(&self, node: NodeId) -> traverse::Siblings<'_, T> {
+        self.node(node)
+            .expect("[precondition] node must be alive")
+            .following_siblings_or_self()
+    }
+
+    /// Returns an iterator of the preceding siblings, excluding this node.
+    ///
+    /// Note that this iterates nodes in order from first child to last child.
+    /// If you want to the reverse-order iterator, use [`Iterator::rev`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use treena::dynamic::{Forest, InsertAs};
+    ///
+    /// let mut forest = Forest::new();
+    /// let root = forest.create_root("root");
+    /// let _child0 = forest.create_insert("0", InsertAs::LastChildOf(root));
+    /// let _child1 = forest.create_insert("1", InsertAs::LastChildOf(root));
+    /// let child2 = forest.create_insert("2", InsertAs::LastChildOf(root));
+    /// let _child3 = forest.create_insert("3", InsertAs::LastChildOf(root));
+    ///
+    /// assert_eq!(
+    ///     forest
+    ///         .preceding_siblings(child2)
+    ///         .map(|node| *node.data())
+    ///         .collect::<Vec<_>>(),
+    ///     &["0", "1"]
+    /// );
+    /// assert_eq!(
+    ///     forest
+    ///         .preceding_siblings(child2)
+    ///         .rev() // REVERSED!
+    ///         .map(|node| *node.data())
+    ///         .collect::<Vec<_>>(),
+    ///     &["1", "0"],
+    ///     "Use `.rev()` to iterate from the starting node to the first node"
+    /// );
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn preceding_siblings(&self, node: NodeId) -> traverse::Siblings<'_, T> {
+        self.node(node)
+            .expect("[precondition] node must be alive")
+            .preceding_siblings()
+    }
+
+    /// Returns an iterator of the preceding siblings, including this node.
+    ///
+    /// Note that this iterates nodes in order from first child to last child.
+    /// If you want to the reverse-order iterator, use [`Iterator::rev`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use treena::dynamic::{Forest, InsertAs};
+    ///
+    /// let mut forest = Forest::new();
+    /// let root = forest.create_root("root");
+    /// let _child0 = forest.create_insert("0", InsertAs::LastChildOf(root));
+    /// let _child1 = forest.create_insert("1", InsertAs::LastChildOf(root));
+    /// let child2 = forest.create_insert("2", InsertAs::LastChildOf(root));
+    /// let _child3 = forest.create_insert("3", InsertAs::LastChildOf(root));
+    ///
+    /// assert_eq!(
+    ///     forest
+    ///         .preceding_siblings_or_self(child2)
+    ///         .map(|node| *node.data())
+    ///         .collect::<Vec<_>>(),
+    ///     &["0", "1", "2"]
+    /// );
+    /// assert_eq!(
+    ///     forest
+    ///         .preceding_siblings_or_self(child2)
+    ///         .rev() // REVERSED!
+    ///         .map(|node| *node.data())
+    ///         .collect::<Vec<_>>(),
+    ///     &["2", "1", "0"],
+    ///     "Use `.rev()` to iterate from the starting node to the first node"
+    /// );
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn preceding_siblings_or_self(&self, node: NodeId) -> traverse::Siblings<'_, T> {
+        self.node(node)
+            .expect("[precondition] node must be alive")
+            .preceding_siblings_or_self()
+    }
+}
+
 /// Debug printing.
 #[cfg(feature = "debug-print")]
 impl<T> Forest<T> {
