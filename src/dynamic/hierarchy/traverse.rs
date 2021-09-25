@@ -103,7 +103,7 @@ impl DepthFirstTraverser {
             // The next event is the last event.
             return None;
         }
-        match next {
+        match next_back {
             DftEvent::Close(id) => {
                 // Dive into the last child if available, or leave the node.
                 let neighbors = hier
