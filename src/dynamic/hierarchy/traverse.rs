@@ -24,8 +24,16 @@ impl DepthFirstTraverser {
     /// Creates a traverser from a toplevel node.
     ///
     /// The toplevel does not need to be the root of a tree.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the given node is not alive.
     #[must_use]
-    pub(crate) fn with_toplevel(id: NodeId) -> Self {
+    pub(crate) fn with_toplevel(id: NodeId, hier: &Hierarchy) -> Self {
+        if !hier.is_alive(id) {
+            panic!("[precondition] the node to be traversed must be alive");
+        }
+
         Self {
             next: Some((DftEvent::Open(id), DftEvent::Close(id))),
         }
@@ -147,9 +155,17 @@ pub struct AncestorsTraverser {
 
 impl AncestorsTraverser {
     /// Creates a traverser from the node.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the given node is not alive.
     #[inline]
     #[must_use]
-    pub(crate) fn with_start(id: NodeId) -> Self {
+    pub(crate) fn with_start(id: NodeId, hier: &Hierarchy) -> Self {
+        if !hier.is_alive(id) {
+            panic!("[precondition] the node to be traversed must be alive");
+        }
+
         // Return the starting node first.
         Self { next: Some(id) }
     }
@@ -176,24 +192,32 @@ pub struct SiblingsTraverser {
 
 impl SiblingsTraverser {
     /// Creates a traverser from the parent.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the given node is not alive.
     #[inline]
     #[must_use]
     pub(crate) fn with_parent(parent: NodeId, hier: &Hierarchy) -> Self {
         let neighbors = hier
             .neighbors(parent)
-            .expect("[consistency] the node being traversed must be alive");
+            .expect("[precondition] the node being traversed must be alive");
         let next = neighbors.first_last_child(hier);
 
         Self { next }
     }
 
     /// Creates a traverser from the first sibling in the range.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the given node is not alive.
     #[inline]
     #[must_use]
     pub(crate) fn with_first_sibling(first: NodeId, hier: &Hierarchy) -> Self {
         let parent = hier
             .neighbors(first)
-            .expect("[consistency] the node being traversed must be alive")
+            .expect("[precondition] the node being traversed must be alive")
             .parent();
         let last = parent
             .and_then(|parent| hier.neighbors(parent))
@@ -209,12 +233,16 @@ impl SiblingsTraverser {
     }
 
     /// Creates a traverser from the last sibling in the range.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the given node is not alive.
     #[inline]
     #[must_use]
     pub(crate) fn with_last_sibling(last: NodeId, hier: &Hierarchy) -> Self {
         let parent = hier
             .neighbors(last)
-            .expect("[consistency] the node being traversed must be alive")
+            .expect("[precondition] the node being traversed must be alive")
             .parent();
         let first = parent
             .and_then(|parent| hier.neighbors(parent))
@@ -306,8 +334,16 @@ impl SafeModeDepthFirstTraverser {
     /// Creates a traverser from a toplevel node.
     ///
     /// The toplevel does not need to be the root of a tree.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the given node is not alive.
     #[must_use]
-    pub(crate) fn new(root: NodeId) -> Self {
+    pub(crate) fn new(root: NodeId, hier: &Hierarchy) -> Self {
+        if !hier.is_alive(root) {
+            panic!("[precondition] the node to be traversed must be alive");
+        }
+
         Self {
             next: Some(DftEvent::Open(root)),
             root,
@@ -379,8 +415,20 @@ impl ShallowDepthFirstTraverser {
     /// Creates a traverser from a toplevel node.
     ///
     /// The toplevel does not need to be the root of a tree.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the given node is not alive.
     #[must_use]
-    pub(crate) fn with_toplevel_and_max_depth(id: NodeId, max_depth: Option<usize>) -> Self {
+    pub(crate) fn with_toplevel_and_max_depth(
+        id: NodeId,
+        hier: &Hierarchy,
+        max_depth: Option<usize>,
+    ) -> Self {
+        if !hier.is_alive(id) {
+            panic!("[precondition] the node to be traversed must be alive");
+        }
+
         // The number of the nodes cannot reach `usize::MAX` since the node ID
         // is internally `NonMaxUsize`. This means that `Some(usize::MAX)` is
         // in fact identical to "no depth limit", so it can be collapsed
@@ -539,9 +587,13 @@ impl BreadthFirstTraverser {
     ///
     /// Panics if the given node is not alive.
     #[must_use]
-    pub(crate) fn with_toplevel(id: NodeId) -> Self {
+    pub(crate) fn with_toplevel(id: NodeId, hier: &Hierarchy) -> Self {
+        if !hier.is_alive(id) {
+            panic!("[precondition] the node to be traversed must be alive");
+        }
+
         Self {
-            inner: ShallowDepthFirstTraverser::with_toplevel_and_max_depth(id, Some(0)),
+            inner: ShallowDepthFirstTraverser::with_toplevel_and_max_depth(id, hier, Some(0)),
             root: Some(id),
             current_depth: 0,
         }
@@ -557,8 +609,11 @@ impl BreadthFirstTraverser {
 
         // Go to the next level.
         self.current_depth += 1;
-        self.inner =
-            ShallowDepthFirstTraverser::with_toplevel_and_max_depth(root, Some(self.current_depth));
+        self.inner = ShallowDepthFirstTraverser::with_toplevel_and_max_depth(
+            root,
+            hier,
+            Some(self.current_depth),
+        );
 
         // Retry for the next level.
         if let Some(id) = self.next_inner(hier) {

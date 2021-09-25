@@ -687,7 +687,7 @@ impl<T> Forest<T> {
         }
         self.detach(node);
 
-        let mut traverser = SafeModeDepthFirstTraverser::new(node);
+        let mut traverser = SafeModeDepthFirstTraverser::new(node, &self.hierarchy);
         while let Some(ev) = traverser.next(&self.hierarchy) {
             let id = match ev {
                 DftEvent::Open(_) => continue,
@@ -794,7 +794,7 @@ impl<T> Forest<T> {
         }
         self.detach(node);
 
-        let mut traverser = SafeModeDepthFirstTraverser::new(node);
+        let mut traverser = SafeModeDepthFirstTraverser::new(node, &self.hierarchy);
         while let Some(ev) = traverser.next(&self.hierarchy) {
             let id = match ev {
                 DftEvent::Open(_) => continue,
@@ -1082,9 +1082,6 @@ impl<T> Forest<T> {
     #[inline]
     #[must_use]
     pub fn breadth_first_traverse(&self, node: NodeId) -> traverse::BreadthFirstTraverse<'_, T> {
-        if !self.is_alive(node) {
-            panic!("[precondition] the node to be traversed must be alive");
-        }
         self.node(node)
             .expect("[precondition] node must be alive")
             .breadth_first_traverse()

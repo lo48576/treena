@@ -6,6 +6,7 @@ use crate::dynamic::forest::traverse::{
     Ancestors, BreadthFirstTraverse, DepthFirstTraverse, ShallowDepthFirstTraverse, Siblings,
 };
 use crate::dynamic::forest::StructureError;
+use crate::dynamic::hierarchy::Hierarchy;
 use crate::dynamic::{AdoptAs, Forest, NodeId};
 
 /// Immutable reference to a node.
@@ -39,6 +40,13 @@ impl<'a, T> Node<'a, T> {
     #[must_use]
     pub fn forest(&self) -> &'a Forest<T> {
         self.forest
+    }
+
+    /// Returns a reference to the hierarchy.
+    #[inline]
+    #[must_use]
+    pub(crate) fn hierarchy(&self) -> &'a Hierarchy {
+        &self.forest.hierarchy
     }
 
     /// Returns the node ID.
@@ -84,7 +92,7 @@ impl<'a, T> Node<'a, T> {
         self.forest
             .neighbors(self.id)
             .expect("[validity] the node has been checked to be alive")
-            .prev_sibling(&self.forest.hierarchy)
+            .prev_sibling(self.hierarchy())
     }
 
     /// Returns the node ID of the first child.
@@ -102,7 +110,7 @@ impl<'a, T> Node<'a, T> {
         self.forest
             .neighbors(self.id)
             .expect("[validity] the node has been checked to be alive")
-            .last_child(&self.forest.hierarchy)
+            .last_child(self.hierarchy())
     }
 
     /// Returns the node IDs of the first child and the last child.
@@ -111,7 +119,7 @@ impl<'a, T> Node<'a, T> {
         self.forest
             .neighbors(self.id)
             .expect("[validity] the node has been checked to be alive")
-            .first_last_child(&self.forest.hierarchy)
+            .first_last_child(self.hierarchy())
     }
 
     /// Returns the parent node.
@@ -159,7 +167,7 @@ impl<'a, T> Node<'a, T> {
         self.forest
             .neighbors(self.id)
             .expect("[validity] the node has been checked to be alive")
-            .first_last_child(&self.forest.hierarchy)
+            .first_last_child(self.hierarchy())
             .map(|(first, last)| {
                 (
                     Self::new(self.forest, first)
