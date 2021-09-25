@@ -3,7 +3,7 @@
 #[cfg(feature = "debug-print")]
 use crate::dynamic::forest::debug_print::DebugPrint;
 use crate::dynamic::forest::traverse::{
-    Ancestors, DepthFirstTraverse, ShallowDepthFirstTraverse, Siblings,
+    Ancestors, BreadthFirstTraverse, DepthFirstTraverse, ShallowDepthFirstTraverse, Siblings,
 };
 use crate::dynamic::forest::StructureError;
 use crate::dynamic::{AdoptAs, Forest, NodeId};
@@ -298,6 +298,69 @@ impl<'a, T> Node<'a, T> {
         max_depth: Option<usize>,
     ) -> ShallowDepthFirstTraverse<'a, T> {
         ShallowDepthFirstTraverse::with_toplevel_and_max_depth(self, max_depth)
+    }
+
+    /// Returns a breadth-first traversal iterator of a subtree.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node is not alive.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use treena::dynamic::{Forest, InsertAs, TreeBuilder};
+    ///
+    /// let mut forest = Forest::new();
+    /// let root = TreeBuilder::new(&mut forest, "root")
+    ///     .child("0")
+    ///     .child("0-0")
+    ///     .child("0-0-0")
+    ///     .parent()
+    ///     .sibling("0-1")
+    ///     .child("0-1-0")
+    ///     .sibling("0-1-1")
+    ///     .parent()
+    ///     .parent()
+    ///     .sibling("1")
+    ///     .child("1-0")
+    ///     .sibling("1-1")
+    ///     .root_id();
+    ///
+    /// // root
+    /// // |-- 0
+    /// // |   |-- 0-0
+    /// // |   |   `-- 0-0-0
+    /// // |   `-- 0-1
+    /// // |       |-- 0-1-0
+    /// // |       `-- 0-1-1
+    /// // `-- 1
+    /// //     |-- 1-0
+    /// //     `-- 1-1
+    ///
+    /// assert_eq!(
+    ///     forest
+    ///         .breadth_first_traverse(root)
+    ///         .map(|(node, depth)| (*node.data(), depth))
+    ///         .collect::<Vec<_>>(),
+    ///     &[
+    ///         ("root", 0),
+    ///         ("0", 1),
+    ///         ("1", 1),
+    ///         ("0-0", 2),
+    ///         ("0-1", 2),
+    ///         ("1-0", 2),
+    ///         ("1-1", 2),
+    ///         ("0-0-0", 3),
+    ///         ("0-1-0", 3),
+    ///         ("0-1-1", 3),
+    ///     ]
+    /// );
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn breadth_first_traverse(&self) -> BreadthFirstTraverse<'a, T> {
+        BreadthFirstTraverse::with_toplevel(self)
     }
 
     /// Returns an iterator of ancestors, excluding this node.
