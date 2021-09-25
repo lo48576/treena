@@ -212,7 +212,7 @@ impl<'a, T> Siblings<'a, T> {
     pub(super) fn with_parent(parent: &Node<'a, T>) -> Self {
         Self {
             forest: parent.forest(),
-            traverser: SiblingsTraverser::with_parent(parent.id(), &parent.forest().hierarchy),
+            traverser: SiblingsTraverser::with_parent(parent.id(), parent.hierarchy()),
         }
     }
 
@@ -222,7 +222,7 @@ impl<'a, T> Siblings<'a, T> {
     pub(super) fn with_first_sibling(first: &Node<'a, T>) -> Self {
         Self {
             forest: first.forest(),
-            traverser: SiblingsTraverser::with_first_sibling(first.id(), &first.forest().hierarchy),
+            traverser: SiblingsTraverser::with_first_sibling(first.id(), first.hierarchy()),
         }
     }
 
@@ -232,7 +232,7 @@ impl<'a, T> Siblings<'a, T> {
     pub(super) fn with_last_sibling(last: &Node<'a, T>) -> Self {
         Self {
             forest: last.forest(),
-            traverser: SiblingsTraverser::with_last_sibling(last.id(), &last.forest().hierarchy),
+            traverser: SiblingsTraverser::with_last_sibling(last.id(), last.hierarchy()),
         }
     }
 }

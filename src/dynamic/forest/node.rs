@@ -92,7 +92,7 @@ impl<'a, T> Node<'a, T> {
         self.forest
             .neighbors(self.id)
             .expect("[validity] the node has been checked to be alive")
-            .prev_sibling(&self.forest.hierarchy)
+            .prev_sibling(self.hierarchy())
     }
 
     /// Returns the node ID of the first child.
@@ -110,7 +110,7 @@ impl<'a, T> Node<'a, T> {
         self.forest
             .neighbors(self.id)
             .expect("[validity] the node has been checked to be alive")
-            .last_child(&self.forest.hierarchy)
+            .last_child(self.hierarchy())
     }
 
     /// Returns the node IDs of the first child and the last child.
@@ -119,7 +119,7 @@ impl<'a, T> Node<'a, T> {
         self.forest
             .neighbors(self.id)
             .expect("[validity] the node has been checked to be alive")
-            .first_last_child(&self.forest.hierarchy)
+            .first_last_child(self.hierarchy())
     }
 
     /// Returns the parent node.
@@ -167,7 +167,7 @@ impl<'a, T> Node<'a, T> {
         self.forest
             .neighbors(self.id)
             .expect("[validity] the node has been checked to be alive")
-            .first_last_child(&self.forest.hierarchy)
+            .first_last_child(self.hierarchy())
             .map(|(first, last)| {
                 (
                     Self::new(self.forest, first)
