@@ -516,3 +516,70 @@ impl ShallowDepthFirstTraverser {
         }
     }
 }
+
+/// Breadth-first tree traverser.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct BreadthFirstTraverser {
+    /// Internal shallow depth-first traverser.
+    inner: ShallowDepthFirstTraverser,
+    /// Root node.
+    ///
+    /// If this is `None`, it means that the iteration has been completed.
+    root: Option<NodeId>,
+    /// Currently iterating depth.
+    current_depth: usize,
+}
+
+impl BreadthFirstTraverser {
+    /// Creates a traverser from a toplevel node.
+    ///
+    /// The toplevel does not need to be the root of a tree.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the given node is not alive.
+    #[must_use]
+    pub(crate) fn with_toplevel(id: NodeId) -> Self {
+        Self {
+            inner: ShallowDepthFirstTraverser::with_toplevel_and_max_depth(id, Some(0)),
+            root: Some(id),
+            current_depth: 0,
+        }
+    }
+
+    /// Traverses the tree and returns the next node ID.
+    pub(crate) fn next(&mut self, hier: &Hierarchy) -> Option<(NodeId, usize)> {
+        let root = self.root?;
+
+        if let Some(id) = self.next_inner(hier) {
+            return Some((id, self.current_depth));
+        }
+
+        // Go to the next level.
+        self.current_depth += 1;
+        self.inner =
+            ShallowDepthFirstTraverser::with_toplevel_and_max_depth(root, Some(self.current_depth));
+
+        // Retry for the next level.
+        if let Some(id) = self.next_inner(hier) {
+            return Some((id, self.current_depth));
+        }
+        // If failed, no more nodes with the current depth.
+        // All nodes are iterated.
+        self.root = None;
+        None
+    }
+
+    /// Returns the next node open event with the current depth.
+    fn next_inner(&mut self, hier: &Hierarchy) -> Option<NodeId> {
+        while let Some((ev, depth)) = self.inner.next(hier) {
+            if depth == self.current_depth {
+                if let DftEvent::Open(id) = ev {
+                    return Some(id);
+                }
+            }
+        }
+
+        None
+    }
+}

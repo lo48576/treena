@@ -1022,6 +1022,74 @@ impl<T> Forest<T> {
             .shallow_depth_first_traverse(max_depth)
     }
 
+    /// Returns a breadth-first traversal iterator of a subtree.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node is not alive.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use treena::dynamic::{Forest, InsertAs, TreeBuilder};
+    ///
+    /// let mut forest = Forest::new();
+    /// let root = TreeBuilder::new(&mut forest, "root")
+    ///     .child("0")
+    ///     .child("0-0")
+    ///     .child("0-0-0")
+    ///     .parent()
+    ///     .sibling("0-1")
+    ///     .child("0-1-0")
+    ///     .sibling("0-1-1")
+    ///     .parent()
+    ///     .parent()
+    ///     .sibling("1")
+    ///     .child("1-0")
+    ///     .sibling("1-1")
+    ///     .root_id();
+    ///
+    /// // root
+    /// // |-- 0
+    /// // |   |-- 0-0
+    /// // |   |   `-- 0-0-0
+    /// // |   `-- 0-1
+    /// // |       |-- 0-1-0
+    /// // |       `-- 0-1-1
+    /// // `-- 1
+    /// //     |-- 1-0
+    /// //     `-- 1-1
+    ///
+    /// assert_eq!(
+    ///     forest
+    ///         .breadth_first_traverse(root)
+    ///         .map(|(node, depth)| (*node.data(), depth))
+    ///         .collect::<Vec<_>>(),
+    ///     &[
+    ///         ("root", 0),
+    ///         ("0", 1),
+    ///         ("1", 1),
+    ///         ("0-0", 2),
+    ///         ("0-1", 2),
+    ///         ("1-0", 2),
+    ///         ("1-1", 2),
+    ///         ("0-0-0", 3),
+    ///         ("0-1-0", 3),
+    ///         ("0-1-1", 3),
+    ///     ]
+    /// );
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn breadth_first_traverse(&self, node: NodeId) -> traverse::BreadthFirstTraverse<'_, T> {
+        if !self.is_alive(node) {
+            panic!("[precondition] the node to be traversed must be alive");
+        }
+        self.node(node)
+            .expect("[precondition] node must be alive")
+            .breadth_first_traverse()
+    }
+
     /// Returns an iterator of ancestors, excluding this node.
     ///
     /// # Panics

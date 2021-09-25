@@ -4,8 +4,8 @@ use core::iter;
 
 use crate::dynamic::forest::{Forest, Node};
 use crate::dynamic::hierarchy::traverse::{
-    AncestorsTraverser, DepthFirstTraverser, DftEvent as DftEventSrc, ShallowDepthFirstTraverser,
-    SiblingsTraverser,
+    AncestorsTraverser, BreadthFirstTraverser, DepthFirstTraverser, DftEvent as DftEventSrc,
+    ShallowDepthFirstTraverser, SiblingsTraverser,
 };
 use crate::dynamic::NodeId;
 
@@ -261,3 +261,40 @@ impl<'a, T> DoubleEndedIterator for Siblings<'a, T> {
 }
 
 impl<T> iter::FusedIterator for Siblings<'_, T> {}
+
+/// Double-ended iterator for breadth-first traversal.
+#[derive(Debug, Clone)]
+pub struct BreadthFirstTraverse<'a, T> {
+    /// Forest.
+    forest: &'a Forest<T>,
+    /// Traverser.
+    traverser: BreadthFirstTraverser,
+}
+
+impl<'a, T> BreadthFirstTraverse<'a, T> {
+    /// Creates a new iterator.
+    #[inline]
+    #[must_use]
+    pub(super) fn with_toplevel(node: &Node<'a, T>) -> Self {
+        Self {
+            forest: node.forest(),
+            traverser: BreadthFirstTraverser::with_toplevel(node.id()),
+        }
+    }
+}
+
+impl<'a, T> Iterator for BreadthFirstTraverse<'a, T> {
+    type Item = (Node<'a, T>, usize);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (id, depth) = self.traverser.next(&self.forest.hierarchy)?;
+        let node = self
+            .forest
+            .node(id)
+            .expect("[consistency] the node must be the part of the tree");
+
+        Some((node, depth))
+    }
+}
+
+impl<T> iter::FusedIterator for BreadthFirstTraverse<'_, T> {}
