@@ -2,6 +2,7 @@
 
 use crate::dynamic::hierarchy::Hierarchy;
 use crate::dynamic::NodeId;
+use crate::nonmax::NonMaxUsize;
 
 /// Depth-first traverseal event.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -362,5 +363,156 @@ impl SafeModeDepthFirstTraverser {
         };
 
         Some(next_of_next)
+    }
+}
+
+/// Double-ended limited-depth depth-first tree traverser.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct ShallowDepthFirstTraverser {
+    /// Next event and the node depth to emit forward and backward.
+    next: Option<((DftEvent, usize), (DftEvent, usize))>,
+    /// Maximum depth.
+    max_depth: Option<NonMaxUsize>,
+}
+
+impl ShallowDepthFirstTraverser {
+    /// Creates a traverser from a toplevel node.
+    ///
+    /// The toplevel does not need to be the root of a tree.
+    #[must_use]
+    pub(crate) fn with_toplevel_and_max_depth(id: NodeId, max_depth: Option<usize>) -> Self {
+        // The number of the nodes cannot reach `usize::MAX` since the node ID
+        // is internally `NonMaxUsize`. This means that `Some(usize::MAX)` is
+        // in fact identical to "no depth limit", so it can be collapsed
+        // to `None`.
+        let max_depth = max_depth.and_then(NonMaxUsize::new);
+
+        Self {
+            next: Some(((DftEvent::Open(id), 0), (DftEvent::Close(id), 0))),
+            max_depth,
+        }
+    }
+
+    /// Returns the allowed max depth.
+    #[inline]
+    #[must_use]
+    pub(crate) fn max_depth(&self) -> Option<usize> {
+        self.max_depth.map(|v| v.get())
+    }
+
+    /// Traverses the tree forward and returns the next node event and depth.
+    pub(crate) fn next(&mut self, hier: &Hierarchy) -> Option<(DftEvent, usize)> {
+        let (next, next_back) = self.next?;
+        match self.next_of_next_forward(hier) {
+            Some(next_of_next) => {
+                self.next = Some((next_of_next, next_back));
+            }
+            None => {
+                self.next = None;
+            }
+        }
+        Some(next)
+    }
+
+    /// Traverses the tree backward and returns the next node event and depth.
+    pub(crate) fn next_back(&mut self, hier: &Hierarchy) -> Option<(DftEvent, usize)> {
+        let (next, next_back) = self.next?;
+        match self.next_of_next_backward(hier) {
+            Some(next_of_next_back) => {
+                self.next = Some((next, next_of_next_back));
+            }
+            None => {
+                self.next = None;
+            }
+        }
+        Some(next_back)
+    }
+
+    /// Traverses the tree forward and returns the next event of the next event.
+    fn next_of_next_forward(&mut self, hier: &Hierarchy) -> Option<(DftEvent, usize)> {
+        let (next, next_back) = self.next?;
+        if next == next_back {
+            // The next event is the last event.
+            return None;
+        }
+
+        let (next, next_depth) = next;
+        match next {
+            DftEvent::Open(id) => {
+                // Leave the node if the current node is at maximum depth.
+                if Some(next_depth) == self.max_depth() {
+                    return Some((DftEvent::Close(id), next_depth));
+                }
+                // Dive into the first child if available, or leave the node.
+                let neighbors = hier
+                    .neighbors(id)
+                    .expect("[consistency] the node being traversed must be alive");
+                Some(match neighbors.first_child() {
+                    Some(first_child) => (DftEvent::Open(first_child), next_depth + 1),
+                    None => (DftEvent::Close(id), next_depth),
+                })
+            }
+            DftEvent::Close(id) => {
+                // Dive into the next sibling if available, or leave the parent.
+                let neighbors = hier
+                    .neighbors(id)
+                    .expect("[consistency] the node being traversed must be alive");
+                Some(match neighbors.next_sibling() {
+                    Some(next_sibling) => (DftEvent::Open(next_sibling), next_depth),
+                    None => {
+                        // If the next event is `Close(root)`, the code must have
+                        // returned earlily and does not come here.
+                        let parent = neighbors.parent().expect(
+                            "[consistency] parent node must exist since the node is not the root",
+                        );
+                        (DftEvent::Close(parent), next_depth - 1)
+                    }
+                })
+            }
+        }
+    }
+
+    /// Traverses the tree backward and returns the next event of the next event.
+    fn next_of_next_backward(&mut self, hier: &Hierarchy) -> Option<(DftEvent, usize)> {
+        let (next, next_back) = self.next?;
+        if next == next_back {
+            // The next event is the last event.
+            return None;
+        }
+
+        let (next_back, next_depth) = next_back;
+        match next_back {
+            DftEvent::Close(id) => {
+                // Leave the node if the current node is at maximum depth.
+                if Some(next_depth) == self.max_depth() {
+                    return Some((DftEvent::Open(id), next_depth));
+                }
+                // Dive into the last child if available, or leave the node.
+                let neighbors = hier
+                    .neighbors(id)
+                    .expect("[consistency] the node being traversed must be alive");
+                Some(match neighbors.last_child(hier) {
+                    Some(last_child) => (DftEvent::Close(last_child), next_depth + 1),
+                    None => (DftEvent::Open(id), next_depth),
+                })
+            }
+            DftEvent::Open(id) => {
+                // Dive into the previous sibling if available, or leave the parent.
+                let neighbors = hier
+                    .neighbors(id)
+                    .expect("[consistency] the node being traversed must be alive");
+                Some(match neighbors.prev_sibling(hier) {
+                    Some(prev_sibling) => (DftEvent::Close(prev_sibling), next_depth),
+                    None => {
+                        // If the next event is `Open(root)`, the code must have
+                        // returned earlily and does not come here.
+                        let parent = neighbors.parent().expect(
+                            "[consistency] parent node must exist since the node is not the root",
+                        );
+                        (DftEvent::Open(parent), next_depth - 1)
+                    }
+                })
+            }
+        }
     }
 }
