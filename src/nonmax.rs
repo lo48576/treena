@@ -51,6 +51,7 @@ impl PartialOrd for NonMaxUsize {
     }
 }
 
+/// Implements formatting traits under `core::fmt` for `NonMaxUsize`.
 macro_rules! impl_fmt {
     ($($trait:ident),*) => {
         $(
