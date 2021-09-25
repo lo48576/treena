@@ -4,7 +4,8 @@ use core::iter;
 
 use crate::dynamic::forest::{Forest, Node};
 use crate::dynamic::hierarchy::traverse::{
-    AncestorsTraverser, DepthFirstTraverser, DftEvent as DftEventSrc, SiblingsTraverser,
+    AncestorsTraverser, DepthFirstTraverser, DftEvent as DftEventSrc, ShallowDepthFirstTraverser,
+    SiblingsTraverser,
 };
 use crate::dynamic::NodeId;
 
@@ -88,6 +89,75 @@ impl<'a, T> DoubleEndedIterator for DepthFirstTraverse<'a, T> {
 }
 
 impl<T> iter::FusedIterator for DepthFirstTraverse<'_, T> {}
+
+/// Double-ended iterator for shallow (i.e. limited-depth) depth-first traversal.
+///
+/// Values returned by an iterator is a pair of a node and the depth.
+/// The root node of the iteration is depth 0.
+#[derive(Debug, Clone)]
+pub struct ShallowDepthFirstTraverse<'a, T> {
+    /// Forest.
+    forest: &'a Forest<T>,
+    /// Traverser.
+    traverser: ShallowDepthFirstTraverser,
+}
+
+impl<'a, T> ShallowDepthFirstTraverse<'a, T> {
+    /// Creates a new iterator.
+    #[inline]
+    #[must_use]
+    pub(super) fn with_toplevel_and_max_depth(
+        node: &Node<'a, T>,
+        max_depth: Option<usize>,
+    ) -> Self {
+        Self {
+            forest: node.forest(),
+            traverser: ShallowDepthFirstTraverser::with_toplevel_and_max_depth(
+                node.id(),
+                max_depth,
+            ),
+        }
+    }
+
+    /// Returns the allowed max depth, if available.
+    #[inline]
+    #[must_use]
+    pub fn max_depth(&self) -> Option<usize> {
+        self.traverser.max_depth()
+    }
+}
+
+impl<'a, T> Iterator for ShallowDepthFirstTraverse<'a, T> {
+    type Item = (DftEvent<Node<'a, T>>, usize);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (ev, depth) = self.traverser.next(&self.forest.hierarchy)?;
+        Some((
+            DftEvent::from_hierarchy_dft_event(ev, |id| {
+                self.forest
+                    .node(id)
+                    .expect("[consistency] the node must be the part of the tree")
+            }),
+            depth,
+        ))
+    }
+}
+
+impl<'a, T> DoubleEndedIterator for ShallowDepthFirstTraverse<'a, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        let (ev, depth) = self.traverser.next_back(&self.forest.hierarchy)?;
+        Some((
+            DftEvent::from_hierarchy_dft_event(ev, |id| {
+                self.forest
+                    .node(id)
+                    .expect("[consistency] the node must be the part of the tree")
+            }),
+            depth,
+        ))
+    }
+}
+
+impl<T> iter::FusedIterator for ShallowDepthFirstTraverse<'_, T> {}
 
 /// Ancestors iterator.
 #[derive(Debug, Clone)]

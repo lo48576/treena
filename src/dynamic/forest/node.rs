@@ -2,7 +2,9 @@
 
 #[cfg(feature = "debug-print")]
 use crate::dynamic::forest::debug_print::DebugPrint;
-use crate::dynamic::forest::traverse::{Ancestors, DepthFirstTraverse, Siblings};
+use crate::dynamic::forest::traverse::{
+    Ancestors, DepthFirstTraverse, ShallowDepthFirstTraverse, Siblings,
+};
 use crate::dynamic::forest::StructureError;
 use crate::dynamic::{AdoptAs, Forest, NodeId};
 
@@ -206,6 +208,96 @@ impl<'a, T> Node<'a, T> {
     #[must_use]
     pub fn depth_first_traverse(&self) -> DepthFirstTraverse<'a, T> {
         DepthFirstTraverse::with_toplevel(self)
+    }
+
+    /// Returns a shallow (i.e. limited-depth) depth-first traversal iterator of a subtree.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use treena::dynamic::{DftEvent, Forest, InsertAs};
+    ///
+    /// let mut forest = Forest::new();
+    /// let root = forest.create_root("root");
+    /// let child0 = forest.create_insert("0", InsertAs::LastChildOf(root));
+    /// let child00 = forest.create_insert("0-0", InsertAs::LastChildOf(child0));
+    /// forest.create_insert("0-0-0", InsertAs::LastChildOf(child00));
+    /// forest.create_insert("0-1", InsertAs::LastChildOf(child0));
+    /// forest.create_insert("1", InsertAs::LastChildOf(root));
+    ///
+    /// // root
+    /// // |-- 0
+    /// // |   |-- 0-0
+    /// // |   |   `-- 0-0-0
+    /// // |   `-- 0-1
+    /// // `-- 1
+    ///
+    /// let node = forest.node(root).expect("should never fail: node exists");
+    /// assert_eq!(
+    ///     node
+    ///         .shallow_depth_first_traverse(Some(2))
+    ///         .map(|(ev, depth)| (ev.map(|node| *node.data()), depth))
+    ///         .collect::<Vec<_>>(),
+    ///     &[
+    ///         (DftEvent::Open("root"), 0),
+    ///         (DftEvent::Open("0"), 1),
+    ///         (DftEvent::Open("0-0"), 2),
+    ///         (DftEvent::Close("0-0"), 2),
+    ///         // Note that `0-0-0` node is not traversed since its depth is 3.
+    ///         (DftEvent::Open("0-1"), 2),
+    ///         (DftEvent::Close("0-1"), 2),
+    ///         (DftEvent::Close("0"), 1),
+    ///         (DftEvent::Open("1"), 1),
+    ///         (DftEvent::Close("1"), 1),
+    ///         (DftEvent::Close("root"), 0),
+    ///     ]
+    /// );
+    /// ```
+    ///
+    /// Depth is counted from the start of traversal, not from the true root node.
+    ///
+    /// ```
+    /// use treena::dynamic::{DftEvent, Forest, InsertAs};
+    ///
+    /// let mut forest = Forest::new();
+    /// let root = forest.create_root("root");
+    /// let child0 = forest.create_insert("0", InsertAs::LastChildOf(root));
+    /// let child00 = forest.create_insert("0-0", InsertAs::LastChildOf(child0));
+    /// forest.create_insert("0-0-0", InsertAs::LastChildOf(child00));
+    /// forest.create_insert("0-1", InsertAs::LastChildOf(child0));
+    /// forest.create_insert("1", InsertAs::LastChildOf(root));
+    ///
+    /// // root
+    /// // |-- 0
+    /// // |   |-- 0-0
+    /// // |   |   `-- 0-0-0
+    /// // |   `-- 0-1
+    /// // `-- 1
+    ///
+    /// let node = forest.node(child0).expect("should never fail: node exists");
+    /// assert_eq!(
+    ///     node
+    ///         .shallow_depth_first_traverse(Some(1))
+    ///         .map(|(ev, depth)| (ev.map(|node| *node.data()), depth))
+    ///         .collect::<Vec<_>>(),
+    ///     &[
+    ///         (DftEvent::Open("0"), 0),
+    ///         (DftEvent::Open("0-0"), 1),
+    ///         (DftEvent::Close("0-0"), 1),
+    ///         // Note that `0-0-0` node is not traversed since its depth is 2.
+    ///         (DftEvent::Open("0-1"), 1),
+    ///         (DftEvent::Close("0-1"), 1),
+    ///         (DftEvent::Close("0"), 0),
+    ///     ]
+    /// );
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn shallow_depth_first_traverse(
+        &self,
+        max_depth: Option<usize>,
+    ) -> ShallowDepthFirstTraverse<'a, T> {
+        ShallowDepthFirstTraverse::with_toplevel_and_max_depth(self, max_depth)
     }
 
     /// Returns an iterator of ancestors, excluding this node.

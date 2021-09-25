@@ -1,6 +1,8 @@
 //! Tests for iterators of forest.
 
-use treena::dynamic::{DftEvent, Forest, NodeId, TreeBuilder};
+use core::mem;
+
+use treena::dynamic::{DftEvent, Forest, Node, NodeId, TreeBuilder};
 
 /// Returns the sample tree as a forest and the root node ID.
 ///
@@ -81,6 +83,24 @@ const SAMPLE_TREE_DFT_EVENTS: &[DftEvent<&str>] = &[
     DftEvent::Close("root"),
 ];
 
+fn to_content_and_depth<'f, I>(iter: I) -> Vec<(DftEvent<&'static str>, usize)>
+where
+    I: Iterator<Item = DftEvent<Node<'f, &'static str>>>,
+{
+    iter.map(|ev| ev.map(|node| *node.data()))
+        .scan(0, |depth, ev| {
+            let ret_depth = match ev {
+                DftEvent::Open(_) => mem::replace(depth, *depth + 1),
+                DftEvent::Close(_) => {
+                    *depth -= 1;
+                    *depth
+                }
+            };
+            Some((ev, ret_depth))
+        })
+        .collect()
+}
+
 #[test]
 fn dft_forward() {
     let (tree, root) = sample_tree();
@@ -107,4 +127,72 @@ fn dft_backward() {
     actual.reverse();
 
     assert_eq!(actual, SAMPLE_TREE_DFT_EVENTS);
+}
+
+#[test]
+fn shallow_dft_forward_with_limit() {
+    let (tree, root) = sample_tree();
+
+    for max_depth in 0..=3 {
+        let actual = tree
+            .shallow_depth_first_traverse(root, Some(max_depth))
+            .map(|(ev, depth)| (ev.map(|node| *node.data()), depth))
+            .collect::<Vec<_>>();
+
+        let expected = to_content_and_depth(tree.depth_first_traverse(root))
+            .into_iter()
+            .filter(|(_, ref depth)| *depth <= max_depth)
+            .collect::<Vec<_>>();
+
+        assert_eq!(actual, expected, "max_depth = {}", max_depth);
+    }
+}
+
+#[test]
+fn shallow_dft_backward_with_limit() {
+    let (tree, root) = sample_tree();
+
+    for max_depth in 0..=3 {
+        let mut actual = tree
+            .shallow_depth_first_traverse(root, Some(max_depth))
+            .rev()
+            .map(|(ev, depth)| (ev.map(|node| *node.data()), depth))
+            .collect::<Vec<_>>();
+        actual.reverse();
+
+        let expected = to_content_and_depth(tree.depth_first_traverse(root))
+            .into_iter()
+            .filter(|(_, ref depth)| *depth <= max_depth)
+            .collect::<Vec<_>>();
+
+        assert_eq!(actual, expected, "max_depth = {}", max_depth);
+    }
+}
+
+#[test]
+fn shallow_dft_forward_without_limit() {
+    let (tree, root) = sample_tree();
+
+    let actual = tree
+        .shallow_depth_first_traverse(root, None)
+        .map(|(ev, depth)| (ev.map(|node| *node.data()), depth))
+        .collect::<Vec<_>>();
+    let expected = to_content_and_depth(tree.depth_first_traverse(root));
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn shallow_dft_backward_without_limit() {
+    let (tree, root) = sample_tree();
+
+    let mut actual = tree
+        .shallow_depth_first_traverse(root, None)
+        .rev()
+        .map(|(ev, depth)| (ev.map(|node| *node.data()), depth))
+        .collect::<Vec<_>>();
+    actual.reverse();
+    let expected = to_content_and_depth(tree.depth_first_traverse(root));
+
+    assert_eq!(actual, expected);
 }
