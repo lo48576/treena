@@ -687,7 +687,7 @@ impl<T> Forest<T> {
         }
         self.detach(node);
 
-        let mut traverser = SafeModeDepthFirstTraverser::new(node);
+        let mut traverser = SafeModeDepthFirstTraverser::new(node, &self.hierarchy);
         while let Some(ev) = traverser.next(&self.hierarchy) {
             let id = match ev {
                 DftEvent::Open(_) => continue,
@@ -794,7 +794,7 @@ impl<T> Forest<T> {
         }
         self.detach(node);
 
-        let mut traverser = SafeModeDepthFirstTraverser::new(node);
+        let mut traverser = SafeModeDepthFirstTraverser::new(node, &self.hierarchy);
         while let Some(ev) = traverser.next(&self.hierarchy) {
             let id = match ev {
                 DftEvent::Open(_) => continue,

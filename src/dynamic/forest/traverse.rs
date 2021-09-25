@@ -59,7 +59,7 @@ impl<'a, T> DepthFirstTraverse<'a, T> {
     pub(super) fn with_toplevel(node: &Node<'a, T>) -> Self {
         Self {
             forest: node.forest(),
-            traverser: DepthFirstTraverser::with_toplevel(node.id()),
+            traverser: DepthFirstTraverser::with_toplevel(node.id(), node.hierarchy()),
         }
     }
 }
@@ -114,6 +114,7 @@ impl<'a, T> ShallowDepthFirstTraverse<'a, T> {
             forest: node.forest(),
             traverser: ShallowDepthFirstTraverser::with_toplevel_and_max_depth(
                 node.id(),
+                node.hierarchy(),
                 max_depth,
             ),
         }
@@ -175,7 +176,7 @@ impl<'a, T> Ancestors<'a, T> {
     pub(super) fn with_start(node: &Node<'a, T>) -> Self {
         Self {
             forest: node.forest(),
-            traverser: AncestorsTraverser::with_start(node.id()),
+            traverser: AncestorsTraverser::with_start(node.id(), node.hierarchy()),
         }
     }
 }
@@ -278,7 +279,7 @@ impl<'a, T> BreadthFirstTraverse<'a, T> {
     pub(super) fn with_toplevel(node: &Node<'a, T>) -> Self {
         Self {
             forest: node.forest(),
-            traverser: BreadthFirstTraverser::with_toplevel(node.id()),
+            traverser: BreadthFirstTraverser::with_toplevel(node.id(), node.hierarchy()),
         }
     }
 }

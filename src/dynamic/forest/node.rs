@@ -6,6 +6,7 @@ use crate::dynamic::forest::traverse::{
     Ancestors, BreadthFirstTraverse, DepthFirstTraverse, ShallowDepthFirstTraverse, Siblings,
 };
 use crate::dynamic::forest::StructureError;
+use crate::dynamic::hierarchy::Hierarchy;
 use crate::dynamic::{AdoptAs, Forest, NodeId};
 
 /// Immutable reference to a node.
@@ -39,6 +40,13 @@ impl<'a, T> Node<'a, T> {
     #[must_use]
     pub fn forest(&self) -> &'a Forest<T> {
         self.forest
+    }
+
+    /// Returns a reference to the hierarchy.
+    #[inline]
+    #[must_use]
+    pub(crate) fn hierarchy(&self) -> &'a Hierarchy {
+        &self.forest.hierarchy
     }
 
     /// Returns the node ID.
