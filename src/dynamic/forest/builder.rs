@@ -63,7 +63,7 @@ pub struct TreeBuilder<'a, T> {
     current: NodeId,
 }
 
-impl<'a, T: Clone> TreeBuilder<'a, T> {
+impl<'a, T> TreeBuilder<'a, T> {
     /// Creates a root node and the tree builder for the root node.
     pub fn new(forest: &'a mut Forest<T>, root_data: T) -> Self {
         let root = forest.create_root(root_data);

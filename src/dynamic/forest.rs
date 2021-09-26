@@ -175,7 +175,7 @@ impl<T> Forest<T> {
 }
 
 /// Node creation and/or insertion.
-impl<T: Clone> Forest<T> {
+impl<T> Forest<T> {
     /// Creates a new root node.
     ///
     /// # Panics

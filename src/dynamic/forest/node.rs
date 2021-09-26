@@ -678,7 +678,7 @@ impl<'a, T> NodeMut<'a, T> {
 }
 
 /// Neighbor node creation.
-impl<'a, T: Clone> NodeMut<'a, T> {
+impl<'a, T> NodeMut<'a, T> {
     /// Creates a node and inserts it to the target position.
     ///
     /// Returns the node ID of the newly created node.
