@@ -3,7 +3,8 @@
 #[cfg(feature = "debug-print")]
 use crate::dynamic::forest::debug_print::DebugPrint;
 use crate::dynamic::forest::traverse::{
-    Ancestors, BreadthFirstTraverse, DepthFirstTraverse, ShallowDepthFirstTraverse, Siblings,
+    AllocatingBreadthFirstTraverse, Ancestors, BreadthFirstTraverse, DepthFirstTraverse,
+    ShallowDepthFirstTraverse, Siblings,
 };
 use crate::dynamic::forest::StructureError;
 use crate::dynamic::hierarchy::Hierarchy;
@@ -312,6 +313,9 @@ impl<'a, T> Node<'a, T> {
     ///
     /// This iterator does not heap-allocates but iterating all nodes will be
     /// `O(n^2)` operation in worst case, not `O(n)`.
+    /// If you want more efficient traversal, use
+    /// [`AllocatingBreadthFirstTraverse`] returned by
+    /// [`Node::allocating_breadth_first_traverse`] method.
     ///
     /// # Panics
     ///
@@ -372,6 +376,73 @@ impl<'a, T> Node<'a, T> {
     #[must_use]
     pub fn breadth_first_traverse(&self) -> BreadthFirstTraverse<'a, T> {
         BreadthFirstTraverse::with_toplevel(self)
+    }
+
+    /// Returns an allocating breadth-first traversal iterator of a subtree.
+    ///
+    /// This iterator heap-allocates and `.next()` performs better than
+    /// [`BreadthFirstTraverse`] returned by
+    /// [`Node::breadth_first_traverse`] method.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node is not alive.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use treena::dynamic::{Forest, InsertAs, TreeBuilder};
+    ///
+    /// let mut forest = Forest::new();
+    /// let root = TreeBuilder::new(&mut forest, "root")
+    ///     .child("0")
+    ///     .child("0-0")
+    ///     .child("0-0-0")
+    ///     .parent()
+    ///     .sibling("0-1")
+    ///     .child("0-1-0")
+    ///     .sibling("0-1-1")
+    ///     .parent()
+    ///     .parent()
+    ///     .sibling("1")
+    ///     .child("1-0")
+    ///     .sibling("1-1")
+    ///     .root_id();
+    ///
+    /// // root
+    /// // |-- 0
+    /// // |   |-- 0-0
+    /// // |   |   `-- 0-0-0
+    /// // |   `-- 0-1
+    /// // |       |-- 0-1-0
+    /// // |       `-- 0-1-1
+    /// // `-- 1
+    /// //     |-- 1-0
+    /// //     `-- 1-1
+    ///
+    /// assert_eq!(
+    ///     forest
+    ///         .allocating_breadth_first_traverse(root)
+    ///         .map(|(node, depth)| (*node.data(), depth))
+    ///         .collect::<Vec<_>>(),
+    ///     &[
+    ///         ("root", 0),
+    ///         ("0", 1),
+    ///         ("1", 1),
+    ///         ("0-0", 2),
+    ///         ("0-1", 2),
+    ///         ("1-0", 2),
+    ///         ("1-1", 2),
+    ///         ("0-0-0", 3),
+    ///         ("0-1-0", 3),
+    ///         ("0-1-1", 3),
+    ///     ]
+    /// );
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn allocating_breadth_first_traverse(&self) -> AllocatingBreadthFirstTraverse<'a, T> {
+        AllocatingBreadthFirstTraverse::with_toplevel(self)
     }
 
     /// Returns an iterator of ancestors, excluding this node.

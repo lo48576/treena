@@ -35,8 +35,8 @@ mod id;
 
 pub use self::anchor::{AdoptAs, InsertAs};
 pub use self::forest::traverse::{
-    Ancestors, BreadthFirstTraverse, DepthFirstTraverse, DftEvent, ShallowDepthFirstTraverse,
-    Siblings,
+    AllocatingBreadthFirstTraverse, Ancestors, BreadthFirstTraverse, DepthFirstTraverse, DftEvent,
+    ShallowDepthFirstTraverse, Siblings,
 };
 #[cfg(any(feature = "debug-print"))]
 pub use self::forest::DebugPrint;

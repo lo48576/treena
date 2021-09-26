@@ -4,8 +4,8 @@ use core::iter;
 
 use crate::dynamic::forest::{Forest, Node};
 use crate::dynamic::hierarchy::traverse::{
-    AncestorsTraverser, BreadthFirstTraverser, DepthFirstTraverser, DftEvent as DftEventSrc,
-    ShallowDepthFirstTraverser, SiblingsTraverser,
+    AllocatingBreadthFirstTraverser, AncestorsTraverser, BreadthFirstTraverser,
+    DepthFirstTraverser, DftEvent as DftEventSrc, ShallowDepthFirstTraverser, SiblingsTraverser,
 };
 use crate::dynamic::NodeId;
 
@@ -304,3 +304,47 @@ impl<'a, T> Iterator for BreadthFirstTraverse<'a, T> {
 }
 
 impl<T> iter::FusedIterator for BreadthFirstTraverse<'_, T> {}
+
+/// Iterator for breadth-first traversal.
+///
+/// This iterator heap-allocates, and iterating all nodes is `O(n)` operation.
+#[derive(Debug, Clone)]
+pub struct AllocatingBreadthFirstTraverse<'a, T> {
+    /// Forest.
+    forest: &'a Forest<T>,
+    /// Traverser.
+    traverser: AllocatingBreadthFirstTraverser,
+}
+
+impl<'a, T> AllocatingBreadthFirstTraverse<'a, T> {
+    /// Creates a new iterator.
+    #[inline]
+    #[must_use]
+    pub(super) fn with_toplevel(node: &Node<'a, T>) -> Self {
+        Self {
+            forest: node.forest(),
+            traverser: AllocatingBreadthFirstTraverser::with_toplevel(node.id(), node.hierarchy()),
+        }
+    }
+}
+
+impl<'a, T> Iterator for AllocatingBreadthFirstTraverse<'a, T> {
+    type Item = (Node<'a, T>, usize);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (id, depth) = self.traverser.next(&self.forest.hierarchy)?;
+        let node = self
+            .forest
+            .node(id)
+            .expect("[consistency] the node must be the part of the tree");
+
+        Some((node, depth))
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.traverser.size_hint()
+    }
+}
+
+impl<T> iter::FusedIterator for AllocatingBreadthFirstTraverse<'_, T> {}
