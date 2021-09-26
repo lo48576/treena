@@ -20,6 +20,91 @@ pub use self::debug_print::DebugPrint;
 pub use self::node::{Node, NodeMut};
 
 /// Forest.
+///
+/// Forest is a set of trees.
+/// This type does not remember root nodes, so users are responsible to remember
+/// root nodes they created.
+///
+/// # Usage
+///
+/// ## Forest creation
+///
+/// Forest can be created by [`Forest::new`] method.
+///
+/// ```
+/// use treena::dynamic::Forest;
+///
+/// // Usually you want the forest to be `mut` to modify structure.
+/// let forest = Forest::<i64>::new();
+/// ```
+///
+/// ## Building tree and modifying structure
+///
+/// There are some ways to construct a tree and/or rebuild trees.
+///
+/// **[`TreeBuilder`]** let you create a new root node and its descendants at
+/// once. For detail, see the documentation for [`TreeBuilder`].
+///
+/// **[`Forest::create_root`]** method let you create a new root node.
+/// Note that a forest can have multiple root nodes.
+///
+/// **[`Forest::create_insert`]** method let you create a new node and insert
+/// it immediately to some place.
+///
+/// **[`Forest::detach`]** method let you detach a subtree from parent and
+/// siblings. The detached node becomes a new root node.
+///
+/// Nodes in the forest can be adopted (transplanted) to another place.
+/// **[`Forest::insert`]** method let you detach some subtree and insert it to
+/// the specified place.
+///
+/// **[`Forest::detach_single`]** method let pyou detach a single node from
+/// all neighbors including children. The detached node becomes a new root node.
+/// Children of the detached node will be expanded to the place where the
+/// detached node was.
+/// For detail, see the method documentation.
+///
+/// **[`Forest::remove`]**, **[`Forest::remove_hooked`]**, and
+/// **[`Forest::remove_hooked_panic_safe`]** let you remove the subtree from
+/// the forest. Data associated to the nodes are passed to the given function
+/// in "hooked" variants. If you don't need associated data, you can just use
+/// [`Forest::remove`].
+///
+/// ## Neighbors access
+///
+/// You need to use [`Node`] proxy object to get neighbors.
+/// See the documentation for [`Node`] type.
+///
+/// ## Traversal and iterators
+///
+/// **[`Forest::ancestors`]** and **[`Forest::ancestors_or_self`]** method
+/// returns an iterator of ancestors.
+///
+/// **[`Forest::children`]** method returns an iterator of children.
+///
+/// **[`Forest::following_siblings`]** and
+/// **[`Forest::following_siblings_or_self`]** methods return iterators of
+/// following siblings.
+///
+/// **[`Forest::preceding_siblings`]** and
+/// **[`Forest::preceding_siblings_or_self`]** methods return iterators of
+/// preceding siblings.
+/// Note that the order of iteration is first to last. If you want to iterate
+/// from current node to the first sibling, use `Iterator::rev()` to the
+/// iterator.
+///
+/// **[`Forest::depth_first_traverse`]** method let you iterate the tree by
+/// depth-first traversal.
+///
+/// **[`Forest::shallow_depth_first_traverse`]** method also let you iterate
+/// the tree by depth-first traversal, but with limited depth.
+/// Nodes deeper than the given limit are efficiently skipped.
+///
+/// **[`Forest::breadth_first_traverse`]** method let you iterate the tree by
+/// breadth-first traversal.
+/// Note that the iterator returned by [`Forest::breadth_first_traverse`] method
+/// does not heap-allocate, but iterating all nodes will be `O(n^2)` operation
+/// in worst case, not `O(n)`.
 #[derive(Debug, Clone)]
 pub struct Forest<T> {
     /// Hierarchy.
@@ -1023,6 +1108,9 @@ impl<T> Forest<T> {
     }
 
     /// Returns a breadth-first traversal iterator of a subtree.
+    ///
+    /// This iterator does not heap-allocates but iterating all nodes will be
+    /// `O(n^2)` operation in worst case, not `O(n)`.
     ///
     /// # Panics
     ///

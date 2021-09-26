@@ -263,7 +263,12 @@ impl<'a, T> DoubleEndedIterator for Siblings<'a, T> {
 
 impl<T> iter::FusedIterator for Siblings<'_, T> {}
 
-/// Double-ended iterator for breadth-first traversal.
+/// Iterator for breadth-first traversal.
+///
+/// This iterator does not heap-allocate.
+///
+/// Note that iterating all nodes will be `O(n^2)` operation in worst case,
+/// not `O(n)`.
 #[derive(Debug, Clone)]
 pub struct BreadthFirstTraverse<'a, T> {
     /// Forest.

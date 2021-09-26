@@ -566,6 +566,11 @@ impl ShallowDepthFirstTraverser {
 }
 
 /// Breadth-first tree traverser.
+///
+/// This traverser does not heap-allocate.
+///
+/// Note that traversing all nodes will be `O(n^2)` operation in worst case,
+/// not `O(n)`.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct BreadthFirstTraverser {
     /// Internal shallow depth-first traverser.

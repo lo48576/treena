@@ -310,6 +310,9 @@ impl<'a, T> Node<'a, T> {
 
     /// Returns a breadth-first traversal iterator of a subtree.
     ///
+    /// This iterator does not heap-allocates but iterating all nodes will be
+    /// `O(n^2)` operation in worst case, not `O(n)`.
+    ///
     /// # Panics
     ///
     /// Panics if the node is not alive.
