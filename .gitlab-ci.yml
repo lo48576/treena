@@ -1,0 +1,90 @@
+# See <https://gitlab.com/gitlab-org/gitlab-foss/blob/master/lib/gitlab/ci/templates/Rust.gitlab-ci.yml>.
+image: 'rust:latest'
+
+stages:
+  # Lints which does not care feature flags.
+  - lint
+  # Lints, builds, and tests which are affected by feature flags.
+  - test
+
+cache:
+  key: "${CI_JOB_NAME}-${CI_COMMIT_REF_SLUG}"
+  paths:
+    - .cargo
+    - target
+
+variables:
+  # Minimum supported Rust version.
+  MSRV: '1.55.0'
+  # Rust version.
+  RUST_VERSION: stable
+  # Features options (such as `--all-features` or `--no-default-features --features=foo`.
+  FEATURES: ''
+  # Whether to use minimal verisons of dependencies.
+  USE_MINIMAL_VERSIONS: ''
+
+lint:rustfmt:
+  stage: lint
+  script:
+    - rustup component add rustfmt
+    - cargo fmt --version
+    # This fails if the code is not already formatted.
+    - cargo fmt --all -- --check
+
+# Template for test stage.
+.test_template: &test
+  stage: test
+  before_script:
+    # Use dependencies with minimal versions, if `USE_MINIMAL_VERSIONS` is nonzero.
+    - if [ "${USE_MINIMAL_VERSIONS:-0}" -ne 0 ] ; then
+        rustup install nightly &&
+        cargo +nightly update -Z minimal-versions ;
+      fi
+    # Set default toolchain.
+    - echo "$RUST_VERSION" > rust-toolchain
+    # Install clippy.
+    - rustup component add clippy
+    # Print verison of tools.
+    - rustc --version && cargo --version && cargo clippy --version
+  script:
+    # Fail if the code has warnings.
+    - cargo clippy --tests ${FEATURES:-} -- --deny warnings
+    # Build the project.
+    - cargo build --verbose --workspace ${FEATURES:-}
+    # Run tests.
+    - cargo test --verbose --workspace ${FEATURES:-}
+
+test:msrv:default-features: &test_msrv
+  <<: *test
+  variables:
+    RUST_VERSION: $MSRV
+
+test:msrv:all-features:
+  <<: *test_msrv
+  variables:
+    FEATURES: --all-features
+
+test:msrv:all-features-minimal-versions:
+  <<: *test_msrv
+  variables:
+    FEATURES: --all-features
+    USE_MINIMAL_VERSIONS: 1
+
+test:msrv:minimal-features:
+  <<: *test_msrv
+  variables:
+    FEATURES: --no-default-features
+
+test:stable:default-features: &test_stable
+  <<: *test
+
+test:stable:all-features:
+  <<: *test_stable
+  variables:
+    FEATURES: --all-features
+
+test:beta:all-features:
+  <<: *test
+  variables:
+    RUST_VERSION: beta
+    FEATURES: --all-features

@@ -1,0 +1,36 @@
+[package]
+name = "treena"
+version = "0.0.1"
+authors = ["YOSHIOKA Takuma <lo48576@hard-wi.red>"]
+edition = "2018"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+description = "Tree stored in an arena"
+repository = "https://gitlab.com/lo48576/treena"
+keywords = ["arena", "tree"]
+resolver = "2"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[package.metadata.docs.rs]
+all-features = true
+# See <https://docs.rs/about/builds>.
+#
+# Didn't create `docsrs` feature, since this (`#[doc(cfg(feature = ...))]`)
+# depends on nightly feature and it prevents `cargo doc --all-features` from
+# running with stable rust toolchain.
+# See <https://doc.rust-lang.org/rustdoc/unstable-features.html#extensions-to-the-doc-attribute>
+# for unstable `#[doc(cfg(...))]` attribute.
+rustc-args = ["--cfg", "docsrs"]
+
+[features]
+default = ["std"]
+
+debug-print = []
+std = []
+
+[dependencies]
+
+[badges]
+maintenance = { status = "experimental" }
+gitlab = { repository = "lo48576/treena", branch = "master" }
