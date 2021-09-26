@@ -101,7 +101,7 @@ pub use self::node::{Node, NodeMut};
 /// Nodes deeper than the given limit are efficiently skipped.
 ///
 /// **[`Forest::breadth_first_traverse`]** and
-/// **[`Forest::allocating_breadth_first_traverse`] method let you iterate the
+/// **[`Forest::allocating_breadth_first_traverse`]** method let you iterate the
 /// tree by breadth-first traversal.
 /// Note that the iterator returned by [`Forest::breadth_first_traverse`] method
 /// does not heap-allocate, but iterating all nodes will be `O(n^2)` operation
