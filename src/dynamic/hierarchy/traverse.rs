@@ -1,7 +1,5 @@
 //! Tree traversal.
 
-use core::mem;
-
 use alloc::collections::VecDeque;
 
 use crate::dynamic::hierarchy::Hierarchy;
@@ -648,15 +646,27 @@ impl BreadthFirstTraverser {
     }
 }
 
+/// Queued event for breadth-first traversal.
+///
+/// The size of this type must be equal to the size of `NodeId` itself, due to
+/// niche optimization.
+#[derive(Debug, Clone, Copy)]
+enum BftQueuedEvent {
+    /// Node at the current level.
+    Node(NodeId),
+    /// No more nodes at the current level. Increment the depth.
+    IncrementDepth,
+}
+
 /// Allocating breadth-first tree traverser.
 ///
 /// This traverser heap-allocates, and iterating all nodes is `O(n)` operation.
 #[derive(Debug, Clone)]
 pub(crate) struct AllocatingBreadthFirstTraverser {
-    /// Nodes at the current depth.
-    nodes_current_depth: VecDeque<NodeId>,
-    /// Nodes at the next depth.
-    nodes_children_depth: VecDeque<NodeId>,
+    /// Queued events.
+    // This queue must have zero or one `BftQueuedEvent::IncrementDepth` at any
+    // moment.
+    events: VecDeque<BftQueuedEvent>,
     /// Currently iterating depth.
     current_depth: usize,
 }
@@ -675,71 +685,63 @@ impl AllocatingBreadthFirstTraverser {
             panic!("[precondition] the node to be traversed must be alive");
         }
 
-        let mut nodes_current_depth = VecDeque::new();
-        nodes_current_depth.push_back(id);
+        let mut events = VecDeque::new();
+        events.push_back(BftQueuedEvent::Node(id));
+        events.push_back(BftQueuedEvent::IncrementDepth);
         Self {
-            nodes_current_depth,
-            nodes_children_depth: Default::default(),
+            events,
             current_depth: 0,
         }
     }
 
     /// Traverses the tree and returns the next node ID and depth.
     pub(crate) fn next(&mut self, hier: &Hierarchy) -> Option<(NodeId, usize)> {
-        // If there remains no nodes to emit at the current depth, go deeper.
-        if self.nodes_current_depth.is_empty() {
-            if self.nodes_children_depth.is_empty() {
-                // No more nodes to traverse.
-                return None;
-            }
+        while let Some(ev) = self.events.pop_front() {
+            let next = match ev {
+                BftQueuedEvent::Node(v) => v,
+                BftQueuedEvent::IncrementDepth => {
+                    if self.events.is_empty() {
+                        // No more events to emit.
+                        // Release the buffer since it won't be used anymore.
+                        self.events = Default::default();
+                        return None;
+                    }
+                    self.current_depth += 1;
+                    self.events.push_back(BftQueuedEvent::IncrementDepth);
+                    continue;
+                }
+            };
 
-            // To avoid extra memory allocations, reuse the current buffers as possible.
-            mem::swap(
-                &mut self.nodes_current_depth,
-                &mut self.nodes_children_depth,
-            );
-            self.current_depth += 1;
-        }
-
-        // There remains nodes at the current level. Emit them.
-        let next = self
-            .nodes_current_depth
-            .pop_front()
-            .expect("[consistency] `nodes_current_depth` must be not to be empty here");
-
-        // Get children of the node and push them to the next-depth queue.
-        {
-            let mut next_child = hier
-                .neighbors(next)
-                .expect("[consistency] the node to be traversed must be alive")
-                .first_child();
-            while let Some(child) = next_child {
-                self.nodes_children_depth.push_back(child);
-                next_child = hier
-                    .neighbors(child)
+            // Get children of the node and push them to the next-depth queue.
+            {
+                let mut next_child = hier
+                    .neighbors(next)
                     .expect("[consistency] the node to be traversed must be alive")
-                    .next_sibling();
+                    .first_child();
+                while let Some(child) = next_child {
+                    self.events.push_back(BftQueuedEvent::Node(child));
+                    next_child = hier
+                        .neighbors(child)
+                        .expect("[consistency] the node to be traversed must be alive")
+                        .next_sibling();
+                }
             }
+
+            return Some((next, self.current_depth));
         }
 
-        // Release memories if they are no longer necessary.
-        if self.nodes_current_depth.is_empty() && self.nodes_children_depth.is_empty() {
-            self.nodes_current_depth = Default::default();
-            self.nodes_children_depth = Default::default();
-        }
-
-        Some((next, self.current_depth))
+        None
     }
 
     /// Returns the size hint in iterator-like manner.
     pub(crate) fn size_hint(&self) -> (usize, Option<usize>) {
-        let current = self.nodes_current_depth.len();
-        let children = self.nodes_children_depth.len();
-        let at_least = current + children;
-        if at_least == 0 {
+        let len = self.events.len();
+        // Note that `len == 1` implies that the queue has only
+        // `BftQueuedEvent::IncrementDepth`.
+        if len <= 1 {
             (0, Some(0))
         } else {
-            (at_least, None)
+            (len - 1, None)
         }
     }
 }
