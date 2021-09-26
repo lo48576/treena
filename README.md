@@ -1,6 +1,8 @@
 # Treena
 
 [![Build Status](https://gitlab.com/lo48576/treena/badges/develop/pipeline.svg)](https://gitlab.com/lo48576/treena/pipelines/)
+[![Latest version](https://img.shields.io/crates/v/treena.svg)](https://crates.io/crates/treena)
+[![Documentation](https://docs.rs/treena/badge.svg)](https://docs.rs/treena)
 ![Minimum supported rustc version: 1.55](https://img.shields.io/badge/rustc-1.55+-lightgray.svg)
 
 Treena: Tree stored in an arena.
