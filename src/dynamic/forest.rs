@@ -100,8 +100,9 @@ pub use self::node::{Node, NodeMut};
 /// the tree by depth-first traversal, but with limited depth.
 /// Nodes deeper than the given limit are efficiently skipped.
 ///
-/// **[`Forest::breadth_first_traverse`]** method let you iterate the tree by
-/// breadth-first traversal.
+/// **[`Forest::breadth_first_traverse`]** and
+/// **[`Forest::allocating_breadth_first_traverse`] method let you iterate the
+/// tree by breadth-first traversal.
 /// Note that the iterator returned by [`Forest::breadth_first_traverse`] method
 /// does not heap-allocate, but iterating all nodes will be `O(n^2)` operation
 /// in worst case, not `O(n)`.
@@ -1111,6 +1112,12 @@ impl<T> Forest<T> {
     ///
     /// This iterator does not heap-allocates but iterating all nodes will be
     /// `O(n^2)` operation in worst case, not `O(n)`.
+    /// If you want more efficient traversal, use
+    /// [`AllocatingBreadthFirstTraverse`] returned by
+    /// [`Forest::allocating_breadth_first_traverse`] method.
+    ///
+    /// [`AllocatingBreadthFirstTraverse`]:
+    ///     `traverse::AllocatingBreadthFirstTraverse`
     ///
     /// # Panics
     ///
@@ -1173,6 +1180,80 @@ impl<T> Forest<T> {
         self.node(node)
             .expect("[precondition] node must be alive")
             .breadth_first_traverse()
+    }
+
+    /// Returns an allocating breadth-first traversal iterator of a subtree.
+    ///
+    /// This iterator heap-allocates and `.next()` performs better than
+    /// [`BreadthFirstTraverse`] returned by
+    /// [`Forest::breadth_first_traverse`] method.
+    ///
+    /// [`BreadthFirstTraverse`]: `traverse::BreadthFirstTraverse`
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node is not alive.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use treena::dynamic::{Forest, InsertAs, TreeBuilder};
+    ///
+    /// let mut forest = Forest::new();
+    /// let root = TreeBuilder::new(&mut forest, "root")
+    ///     .child("0")
+    ///     .child("0-0")
+    ///     .child("0-0-0")
+    ///     .parent()
+    ///     .sibling("0-1")
+    ///     .child("0-1-0")
+    ///     .sibling("0-1-1")
+    ///     .parent()
+    ///     .parent()
+    ///     .sibling("1")
+    ///     .child("1-0")
+    ///     .sibling("1-1")
+    ///     .root_id();
+    ///
+    /// // root
+    /// // |-- 0
+    /// // |   |-- 0-0
+    /// // |   |   `-- 0-0-0
+    /// // |   `-- 0-1
+    /// // |       |-- 0-1-0
+    /// // |       `-- 0-1-1
+    /// // `-- 1
+    /// //     |-- 1-0
+    /// //     `-- 1-1
+    ///
+    /// assert_eq!(
+    ///     forest
+    ///         .allocating_breadth_first_traverse(root)
+    ///         .map(|(node, depth)| (*node.data(), depth))
+    ///         .collect::<Vec<_>>(),
+    ///     &[
+    ///         ("root", 0),
+    ///         ("0", 1),
+    ///         ("1", 1),
+    ///         ("0-0", 2),
+    ///         ("0-1", 2),
+    ///         ("1-0", 2),
+    ///         ("1-1", 2),
+    ///         ("0-0-0", 3),
+    ///         ("0-1-0", 3),
+    ///         ("0-1-1", 3),
+    ///     ]
+    /// );
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn allocating_breadth_first_traverse(
+        &self,
+        node: NodeId,
+    ) -> traverse::AllocatingBreadthFirstTraverse<'_, T> {
+        self.node(node)
+            .expect("[precondition] node must be alive")
+            .allocating_breadth_first_traverse()
     }
 
     /// Returns an iterator of ancestors, excluding this node.
