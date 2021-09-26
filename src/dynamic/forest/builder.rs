@@ -5,10 +5,93 @@ use crate::dynamic::{InsertAs, NodeId};
 
 /// Tree builder.
 ///
+/// `TreeBuilder` remembers "the current node".
+///
+/// * [`TreeBuilder::child()`][`TreeBuilder::child`] creates a new child node
+///   (as the last child) to the current node.
+/// * [`TreeBuilder::sibling()`][`TreeBuilder::sibling`] creates a new next
+///   sibling of the current node.
+/// * [`TreeBuilder::parent()`][`TreeBuilder::parent`] makes the parent the new current node.
+///
+/// [`TreeBuilder::root_id()`][`TreeBuilder::root_id`] returns the root node ID,
+/// and [`TreeBuilder::current_id()`][`TreeBuilder::current_id`] returns the
+/// node ID of the current node.
+///
 /// # Examples
 ///
+/// Builder can be reused, but note that it remembers the root and the current node.
+///
 /// ```
-/// use treena::dynamic::{DftEvent, Forest, TreeBuilder};
+/// # use treena::dynamic::DftEvent;
+/// use treena::dynamic::{Forest, TreeBuilder};
+///
+/// let mut forest: Forest<&'static str> = Forest::new();
+/// let mut builder = TreeBuilder::new(&mut forest, "root");
+/// builder
+///     .child("0")
+///     .child("0-0")
+///     .sibling("0-1")
+///     .parent()
+///     .sibling("1")
+///     .child("1-0");
+///
+/// // Tree:
+/// //  root
+/// //  |-- 0
+/// //  |   |-- 0-0
+/// //  |   `-- 0-1
+/// //  `-- 1
+/// //      `-- 1-0 (<-- current)
+///
+/// builder
+///     .parent()
+///     .child("1-1")
+///     .parent()
+///     .sibling("2");
+///
+/// // Tree:
+/// //  root
+/// //  |-- 0
+/// //  |   |-- 0-0
+/// //  |   `-- 0-1
+/// //  |-- 1
+/// //  |   |-- 1-0
+/// //  |   `-- 1-1
+/// //  `-- 2 (<-- current)
+/// #
+/// # let root = builder.root_id();
+/// # assert_eq!(
+/// #     forest.node(root)
+/// #         .expect("should never fail: the created node must be alive")
+/// #         .depth_first_traverse()
+/// #         .map(|ev| ev.map(|node| *node.data()))
+/// #         .collect::<Vec<_>>(),
+/// #     &[
+/// #         DftEvent::Open("root"),
+/// #         DftEvent::Open("0"),
+/// #         DftEvent::Open("0-0"),
+/// #         DftEvent::Close("0-0"),
+/// #         DftEvent::Open("0-1"),
+/// #         DftEvent::Close("0-1"),
+/// #         DftEvent::Close("0"),
+/// #         DftEvent::Open("1"),
+/// #         DftEvent::Open("1-0"),
+/// #         DftEvent::Close("1-0"),
+/// #         DftEvent::Open("1-1"),
+/// #         DftEvent::Close("1-1"),
+/// #         DftEvent::Close("1"),
+/// #         DftEvent::Open("2"),
+/// #         DftEvent::Close("2"),
+/// #         DftEvent::Close("root"),
+/// #     ]
+/// # );
+/// ```
+///
+/// You can create a tree and get the root node ID at once.
+///
+/// ```
+/// # use treena::dynamic::DftEvent;
+/// use treena::dynamic::{Forest, TreeBuilder};
 ///
 /// let mut forest = Forest::new();
 /// let root = TreeBuilder::new(&mut forest, "root")
@@ -25,33 +108,44 @@ use crate::dynamic::{InsertAs, NodeId};
 ///     .sibling("3")
 ///     .root_id();
 ///
-/// assert_eq!(
-///     forest.node(root)
-///         .expect("should never fail: the created node must be alive")
-///         .depth_first_traverse()
-///         .map(|ev| ev.map(|node| *node.data()))
-///         .collect::<Vec<_>>(),
-///     &[
-///         DftEvent::Open("root"),
-///         DftEvent::Open("0"),
-///         DftEvent::Open("0-0"),
-///         DftEvent::Open("0-0-0"),
-///         DftEvent::Close("0-0-0"),
-///         DftEvent::Close("0-0"),
-///         DftEvent::Open("0-1"),
-///         DftEvent::Close("0-1"),
-///         DftEvent::Close("0"),
-///         DftEvent::Open("1"),
-///         DftEvent::Close("1"),
-///         DftEvent::Open("2"),
-///         DftEvent::Open("2-0"),
-///         DftEvent::Close("2-0"),
-///         DftEvent::Close("2"),
-///         DftEvent::Open("3"),
-///         DftEvent::Close("3"),
-///         DftEvent::Close("root"),
-///     ]
-/// );
+/// // Tree:
+/// //  root
+/// //  |-- 0
+/// //  |   |-- 0-0
+/// //  |   |   `-- 0-0-0
+/// //  |   `-- 0-1
+/// //  |-- 1
+/// //  |-- 2
+/// //  |   `-- 2-0
+/// //  `-- 3
+/// #
+/// # assert_eq!(
+/// #     forest.node(root)
+/// #         .expect("should never fail: the created node must be alive")
+/// #         .depth_first_traverse()
+/// #         .map(|ev| ev.map(|node| *node.data()))
+/// #         .collect::<Vec<_>>(),
+/// #     &[
+/// #         DftEvent::Open("root"),
+/// #         DftEvent::Open("0"),
+/// #         DftEvent::Open("0-0"),
+/// #         DftEvent::Open("0-0-0"),
+/// #         DftEvent::Close("0-0-0"),
+/// #         DftEvent::Close("0-0"),
+/// #         DftEvent::Open("0-1"),
+/// #         DftEvent::Close("0-1"),
+/// #         DftEvent::Close("0"),
+/// #         DftEvent::Open("1"),
+/// #         DftEvent::Close("1"),
+/// #         DftEvent::Open("2"),
+/// #         DftEvent::Open("2-0"),
+/// #         DftEvent::Close("2-0"),
+/// #         DftEvent::Close("2"),
+/// #         DftEvent::Open("3"),
+/// #         DftEvent::Close("3"),
+/// #         DftEvent::Close("root"),
+/// #     ]
+/// # );
 /// ```
 #[derive(Debug)]
 pub struct TreeBuilder<'a, T> {
