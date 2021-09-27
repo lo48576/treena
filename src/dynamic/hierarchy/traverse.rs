@@ -745,3 +745,20 @@ impl AllocatingBreadthFirstTraverser {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use core::mem;
+
+    #[test]
+    fn bft_queued_event_niche_optimized() {
+        assert_eq!(
+            mem::size_of::<BftQueuedEvent>(),
+            mem::size_of::<NodeId>(),
+            "`BftQueuedEvent` type must have the same size as \
+             `NodeId` type due to niche optimization"
+        );
+    }
+}
