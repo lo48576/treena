@@ -719,6 +719,8 @@ impl<'a, T> NodeMut<'a, T> {
     }
 
     /// Returns a reference to the forest.
+    ///
+    /// Note that the returned reference cannot live longer than the `NodeMut`.
     #[inline]
     #[must_use]
     pub fn forest(&self) -> &Forest<T> {
@@ -733,6 +735,8 @@ impl<'a, T> NodeMut<'a, T> {
     }
 
     /// Returns a reference to the data associated to the node.
+    ///
+    /// Note that the returned reference cannot live longer than the `NodeMut`.
     #[inline]
     #[must_use]
     pub fn data(&self) -> &T {
@@ -742,6 +746,8 @@ impl<'a, T> NodeMut<'a, T> {
     }
 
     /// Returns a mutable reference to the data associated to the node.
+    ///
+    /// Note that the returned reference cannot live longer than the `NodeMut`.
     #[inline]
     #[must_use]
     pub fn data_mut(&mut self) -> &mut T {
