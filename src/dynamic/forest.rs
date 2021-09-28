@@ -1535,3 +1535,6 @@ impl fmt::Display for StructureError {
         f.write_str(msg)
     }
 }
+
+#[cfg(feature = "std")]
+impl std::error::Error for StructureError {}
