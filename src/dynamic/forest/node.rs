@@ -755,6 +755,15 @@ impl<'a, T> NodeMut<'a, T> {
             .data_mut(self.id)
             .expect("[validity] the node has been checked to be alive")
     }
+
+    /// Returns a mutable reference to the data associated to the node.
+    ///
+    /// Note that this method consumes the `NodeMut`.
+    pub fn into_data_ref_mut(self) -> &'a mut T {
+        self.forest
+            .data_mut(self.id)
+            .expect("[validity] the node has been checked to be alive")
+    }
 }
 
 /// Neighbor node creation.
