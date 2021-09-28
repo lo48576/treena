@@ -60,7 +60,7 @@ impl<'a, T> Node<'a, T> {
     /// Returns a reference to the data associated to the node.
     #[inline]
     #[must_use]
-    pub fn data(&self) -> &T {
+    pub fn data(&self) -> &'a T {
         self.forest
             .data(self.id)
             .expect("[validity] the node has been checked to be alive")
