@@ -144,6 +144,18 @@ impl DepthFirstTraverser {
             }
         }
     }
+
+    /// Returns the next event without advancing the iterator.
+    #[must_use]
+    pub(crate) fn peek(&self) -> Option<DftEvent> {
+        self.next.map(|(forward, _back)| forward)
+    }
+
+    /// Returns the backward next event without advancing the iterator.
+    #[must_use]
+    pub(crate) fn peek_back(&self) -> Option<DftEvent> {
+        self.next.map(|(_fwd, back)| back)
+    }
 }
 
 /// Ancestors traverser.
@@ -182,6 +194,13 @@ impl AncestorsTraverser {
             .parent();
 
         Some(next)
+    }
+
+    /// Returns the next event without advancing the iterator.
+    #[inline]
+    #[must_use]
+    pub(crate) fn peek(&self) -> Option<NodeId> {
+        self.next
     }
 }
 
@@ -311,6 +330,18 @@ impl SiblingsTraverser {
             .neighbors(next_back)
             .expect("[consistency] the node being traversed must be alive");
         neighbors.prev_sibling(hier)
+    }
+
+    /// Returns the next event without advancing the iterator.
+    #[must_use]
+    pub(crate) fn peek(&self) -> Option<NodeId> {
+        self.next.map(|(forward, _back)| forward)
+    }
+
+    /// Returns the backward next event without advancing the iterator.
+    #[must_use]
+    pub(crate) fn peek_back(&self) -> Option<NodeId> {
+        self.next.map(|(_fwd, back)| back)
     }
 }
 
@@ -565,6 +596,18 @@ impl ShallowDepthFirstTraverser {
             }
         }
     }
+
+    /// Returns the next event without advancing the iterator.
+    #[must_use]
+    pub(crate) fn peek(&self) -> Option<(DftEvent, usize)> {
+        self.next.map(|(forward, _back)| forward)
+    }
+
+    /// Returns the backward next event without advancing the iterator.
+    #[must_use]
+    pub(crate) fn peek_back(&self) -> Option<(DftEvent, usize)> {
+        self.next.map(|(_fwd, back)| back)
+    }
 }
 
 /// Breadth-first tree traverser.
@@ -742,6 +785,21 @@ impl AllocatingBreadthFirstTraverser {
             (0, Some(0))
         } else {
             (len - 1, None)
+        }
+    }
+
+    /// Returns the next event without advancing the iterator.
+    #[inline]
+    #[must_use]
+    pub(crate) fn peek(&self) -> Option<(NodeId, usize)> {
+        match *self.events.front()? {
+            BftQueuedEvent::Node(next) => Some((next, self.current_depth)),
+            BftQueuedEvent::IncrementDepth => match *self.events.get(1)? {
+                BftQueuedEvent::Node(next) => Some((next, self.current_depth + 1)),
+                BftQueuedEvent::IncrementDepth => panic!(
+                    "[consistency] `IncrementDepth` must not appear right after `IncrementDepth`"
+                ),
+            },
         }
     }
 }

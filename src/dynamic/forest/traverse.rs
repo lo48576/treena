@@ -62,6 +62,28 @@ impl<'a, T> DepthFirstTraverse<'a, T> {
             traverser: DepthFirstTraverser::with_toplevel(node.id(), node.hierarchy()),
         }
     }
+
+    /// Returns the next event without advancing the iterator.
+    #[must_use]
+    pub fn peek(&self) -> Option<DftEvent<Node<'a, T>>> {
+        let ev = self.traverser.peek()?;
+        Some(DftEvent::from_hierarchy_dft_event(ev, |id| {
+            self.forest
+                .node(id)
+                .expect("[consistency] the node must be the part of the tree")
+        }))
+    }
+
+    /// Returns the backward next event without advancing the iterator.
+    #[must_use]
+    pub fn peek_back(&self) -> Option<DftEvent<Node<'a, T>>> {
+        let ev = self.traverser.peek_back()?;
+        Some(DftEvent::from_hierarchy_dft_event(ev, |id| {
+            self.forest
+                .node(id)
+                .expect("[consistency] the node must be the part of the tree")
+        }))
+    }
 }
 
 impl<'a, T> Iterator for DepthFirstTraverse<'a, T> {
@@ -126,6 +148,34 @@ impl<'a, T> ShallowDepthFirstTraverse<'a, T> {
     pub fn max_depth(&self) -> Option<usize> {
         self.traverser.max_depth()
     }
+
+    /// Returns the next event without advancing the iterator.
+    #[must_use]
+    pub fn peek(&self) -> Option<(DftEvent<Node<'a, T>>, usize)> {
+        let (ev, depth) = self.traverser.peek()?;
+        Some((
+            DftEvent::from_hierarchy_dft_event(ev, |id| {
+                self.forest
+                    .node(id)
+                    .expect("[consistency] the node must be the part of the tree")
+            }),
+            depth,
+        ))
+    }
+
+    /// Returns the backward next event without advancing the iterator.
+    #[must_use]
+    pub fn peek_back(&self) -> Option<(DftEvent<Node<'a, T>>, usize)> {
+        let (ev, depth) = self.traverser.peek_back()?;
+        Some((
+            DftEvent::from_hierarchy_dft_event(ev, |id| {
+                self.forest
+                    .node(id)
+                    .expect("[consistency] the node must be the part of the tree")
+            }),
+            depth,
+        ))
+    }
 }
 
 impl<'a, T> Iterator for ShallowDepthFirstTraverse<'a, T> {
@@ -178,6 +228,17 @@ impl<'a, T> Ancestors<'a, T> {
             forest: node.forest(),
             traverser: AncestorsTraverser::with_start(node.id(), node.hierarchy()),
         }
+    }
+
+    /// Returns the next event without advancing the iterator.
+    #[must_use]
+    pub fn peek(&self) -> Option<Node<'a, T>> {
+        let id = self.traverser.peek()?;
+        let node = self
+            .forest
+            .node(id)
+            .expect("[consistency] the node must be the part of the tree");
+        Some(node)
     }
 }
 
@@ -234,6 +295,28 @@ impl<'a, T> Siblings<'a, T> {
             forest: last.forest(),
             traverser: SiblingsTraverser::with_last_sibling(last.id(), last.hierarchy()),
         }
+    }
+
+    /// Returns the next event without advancing the iterator.
+    #[must_use]
+    pub fn peek(&self) -> Option<Node<'a, T>> {
+        let id = self.traverser.peek()?;
+        let node = self
+            .forest
+            .node(id)
+            .expect("[consistency] the node must be the part of the tree");
+        Some(node)
+    }
+
+    /// Returns the backward next event without advancing the iterator.
+    #[must_use]
+    pub fn peek_back(&self) -> Option<Node<'a, T>> {
+        let id = self.traverser.peek_back()?;
+        let node = self
+            .forest
+            .node(id)
+            .expect("[consistency] the node must be the part of the tree");
+        Some(node)
     }
 }
 
@@ -325,6 +408,18 @@ impl<'a, T> AllocatingBreadthFirstTraverse<'a, T> {
             forest: node.forest(),
             traverser: AllocatingBreadthFirstTraverser::with_toplevel(node.id(), node.hierarchy()),
         }
+    }
+
+    /// Returns the next event without advancing the iterator.
+    #[must_use]
+    pub fn peek(&self) -> Option<(Node<'a, T>, usize)> {
+        let (id, depth) = self.traverser.peek()?;
+        let node = self
+            .forest
+            .node(id)
+            .expect("[consistency] the node must be the part of the tree");
+
+        Some((node, depth))
     }
 }
 
