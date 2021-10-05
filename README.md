@@ -21,19 +21,19 @@ Treena is heavily inspired by [indextree] crate, but has extra goals.
 * Use clear and unambiguous names.
     * Traditional function names which are often used for tree manipulation
       are very unclear for non-native English speakers.
-          * For example, what does `A.insert_before(B)` mean?
-            "insert A before B" or "insert B before A"?
-          * `P.insert_before(A, B)` can be interpreted relatively naturally:
-            "P (parent) inserts the node A before the node B".
-            However, `P` here is completely redundant since it must be the
-            parent of `A`.
+        * For example, what does `A.insert_before(B)` mean?
+          "insert A before B" or "insert B before A"?
+        * `P.insert_before(A, B)` can be interpreted relatively naturally:
+          "P (parent) inserts the node A before the node B".
+          However, `P` here is completely redundant since it must be the
+          parent of `A`.
     * Treena provides these functions as `A.adopt(B, AsFoo)` and
       `forest.insert(A, AsFooOf(B))`. They are much clearer than the traditional
       names.
-          * For example, `A.adopt(B, AdoptAs::LastChild)` can be read as
-            "the node A adopts the node B as the last child of A".
-          * Another example: `forest.insert(A, InsertAs::NextSiblingOf(B))` can
-            be read as "insert the node A as the next sibling of the node B".
+        * For example, `A.adopt(B, AdoptAs::LastChild)` can be read as
+          "the node A adopts the node B as the last child of A".
+        * Another example: `forest.insert(A, InsertAs::NextSiblingOf(B))` can
+          be read as "insert the node A as the next sibling of the node B".
 * Be safe and easy to debug.
     * No unsafe codes (at least for now). This means that the crate won't run
       into undefined behavior.
