@@ -5,7 +5,7 @@
 [![Documentation](https://docs.rs/treena/badge.svg)](https://docs.rs/treena)
 ![Minimum supported rustc version: 1.55](https://img.shields.io/badge/rustc-1.55+-lightgray.svg)
 
-Treena: Tree stored in an arena.
+Treena: Trees stored in an arena.
 
 ## Yet another arena-tree?
 
