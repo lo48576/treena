@@ -1545,12 +1545,139 @@ impl<T: Clone> Forest<T> {
     /// # }
     /// ```
     pub fn clone_local_tree(&mut self, src_id: NodeId) -> NodeId {
+        self.clone_local_tree_with_id_mapping(src_id, |_, _| ())
+    }
+
+    /// Clones a subtree from another forest as a new tree, and returns the new
+    /// root ID in this forest.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node is not alive.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #[cfg(feature = "debug-print")] {
+    /// # use treena::dynamic::{Forest, TreeBuilder};
+    /// # let mut forest_src = Forest::new();
+    /// # let mut builder = TreeBuilder::new(&mut forest_src, "root");
+    /// # let child_1 = builder
+    /// #     .child("0")
+    /// #     .sibling("1")
+    /// #     .current_id();
+    /// # builder
+    /// #     .child("1-0")
+    /// #     .sibling("1-1")
+    /// #     .sibling("1-2")
+    /// #     .parent()
+    /// #     .sibling("2");
+    /// # let root = builder.root_id();
+    /// let before = r#"root
+    /// |-- 0
+    /// |-- 1
+    /// |   |-- 1-0
+    /// |   |-- 1-1
+    /// |   `-- 1-2
+    /// `-- 2"#;
+    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
+    /// assert_eq!(forest_src.debug_print(root).to_string(), before);
+    ///
+    /// // Destination forest.
+    /// let mut forest_dest = Forest::new();
+    ///
+    /// // Clone a tree.
+    /// let tree_src = forest_src.node(child_1).expect("the node is available");
+    /// let cloned = forest_dest.clone_foreign_tree(tree_src);
+    ///
+    /// let cloned_expected = r#"1
+    /// |-- 1-0
+    /// |-- 1-1
+    /// `-- 1-2"#;
+    /// assert_eq!(forest_dest.debug_print(cloned).to_string(), cloned_expected);
+    /// assert!(
+    ///     forest_dest.node(cloned).expect("must be alive").parent_id().is_none(),
+    ///     "The new node is a root node of an independent tree and has no parent"
+    /// );
+    /// # }
+    /// ```
+    pub fn clone_foreign_tree(&mut self, src_root: Node<'_, T>) -> NodeId {
+        self.clone_foreign_tree_with_id_mapping(src_root, |_, _| ())
+    }
+
+    /// Clones a subtree as a new tree in the forest, and returns the new root ID.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node (including descendants) are not alive.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #[cfg(feature = "debug-print")] {
+    /// # use treena::dynamic::{Forest, TreeBuilder};
+    /// # let mut forest = Forest::new();
+    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let child_1 = builder
+    /// #     .child("0")
+    /// #     .sibling("1")
+    /// #     .current_id();
+    /// # builder
+    /// #     .child("1-0")
+    /// #     .sibling("1-1")
+    /// #     .sibling("1-2")
+    /// #     .parent()
+    /// #     .sibling("2");
+    /// # let root = builder.root_id();
+    /// let before = r#"root
+    /// |-- 0
+    /// |-- 1
+    /// |   |-- 1-0
+    /// |   |-- 1-1
+    /// |   `-- 1-2
+    /// `-- 2"#;
+    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
+    /// assert_eq!(forest.debug_print(root).to_string(), before);
+    ///
+    /// // Clone a tree.
+    /// let mut mapping = Vec::new();
+    /// let cloned = forest.clone_local_tree_with_id_mapping(
+    ///     child_1,
+    ///     |src, dest| mapping.push((src, dest))
+    /// );
+    ///
+    /// let cloned_expected = r#"1
+    /// |-- 1-0
+    /// |-- 1-1
+    /// `-- 1-2"#;
+    /// assert_eq!(forest.debug_print(cloned).to_string(), cloned_expected);
+    /// assert!(
+    ///     forest.node(cloned).expect("must be alive").parent_id().is_none(),
+    ///     "The new node is a root node of an independent tree and has no parent"
+    /// );
+    ///
+    /// // Check node ID mapping.
+    /// for (src, dest) in mapping {
+    ///     assert_eq!(forest.data(src), forest.data(dest));
+    /// }
+    /// # }
+    /// ```
+    #[must_use]
+    pub fn clone_local_tree_with_id_mapping<F>(
+        &mut self,
+        src_id: NodeId,
+        mut add_mapping: F,
+    ) -> NodeId
+    where
+        F: FnMut(NodeId, NodeId),
+    {
         let root_data = self
             .data(src_id)
             .expect("[consistency] the node must be alive")
             .clone();
         let root_id = self.create_root(root_data);
         let mut current_dest = root_id;
+        add_mapping(src_id, current_dest);
         let mut traverser = SafeModeDepthFirstTraverser::new(src_id, &self.hierarchy);
 
         // Skip the open event of the root node.
@@ -1564,6 +1691,7 @@ impl<T: Clone> Forest<T> {
                         .expect("[consistency] the node being traversed must be alive")
                         .clone();
                     current_dest = self.create_insert(data, InsertAs::LastChildOf(current_dest));
+                    add_mapping(src_id, current_dest);
                 }
                 DftEvent::Close(_) => {
                     let parent = self
@@ -1631,7 +1759,11 @@ impl<T: Clone> Forest<T> {
     ///
     /// // Clone a tree.
     /// let tree_src = forest_src.node(child_1).expect("the node is available");
-    /// let cloned = forest_dest.clone_foreign_tree(tree_src);
+    /// let mut mapping = Vec::new();
+    /// let cloned = forest_dest.clone_foreign_tree_with_id_mapping(
+    ///     tree_src,
+    ///     |src, dest| mapping.push((src, dest))
+    /// );
     ///
     /// let cloned_expected = r#"1
     /// |-- 1-0
@@ -1642,9 +1774,22 @@ impl<T: Clone> Forest<T> {
     ///     forest_dest.node(cloned).expect("must be alive").parent_id().is_none(),
     ///     "The new node is a root node of an independent tree and has no parent"
     /// );
+    ///
+    /// // Check node ID mapping.
+    /// for (src, dest) in mapping {
+    ///     assert_eq!(forest_src.data(src), forest_dest.data(dest));
+    /// }
     /// # }
     /// ```
-    pub fn clone_foreign_tree(&mut self, src_root: Node<'_, T>) -> NodeId {
+    #[must_use]
+    pub fn clone_foreign_tree_with_id_mapping<F>(
+        &mut self,
+        src_root: Node<'_, T>,
+        mut add_mapping: F,
+    ) -> NodeId
+    where
+        F: FnMut(NodeId, NodeId),
+    {
         use crate::dynamic::forest::traverse::DftEvent;
 
         let mut events = src_root.depth_first_traverse();
@@ -1658,12 +1803,15 @@ impl<T: Clone> Forest<T> {
             }
         };
         let mut builder = TreeBuilder::new(self, root_data);
+        let root_id = builder.root_id();
+        add_mapping(src_root.id(), root_id);
 
         for ev in events {
             match ev {
                 DftEvent::Open(node) => {
                     let data = node.data().clone();
                     builder.child(data);
+                    add_mapping(node.id(), builder.current_id());
                 }
                 DftEvent::Close(_) => {
                     // When `builder.try_parent().is_none()` is true, it
@@ -1675,7 +1823,7 @@ impl<T: Clone> Forest<T> {
             }
         }
 
-        builder.root_id()
+        root_id
     }
 }
 
