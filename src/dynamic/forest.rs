@@ -70,6 +70,11 @@ pub use self::node::{Node, NodeMut};
 /// in "hooked" variants. If you don't need associated data, you can just use
 /// [`Forest::remove`].
 ///
+/// **[`Forest::clone_local_tree`]** and **[`Forest::clone_foreign_tree`]**
+/// clones a subtree into a forest (by deep-copy). Local version clones the tree
+/// inside the same forest, and foreign version clones the tree from a forest
+/// into another forest.
+///
 /// ## Neighbors access
 ///
 /// You need to use [`Node`] proxy object to get neighbors.
