@@ -168,6 +168,20 @@ impl<'a, T> TreeBuilder<'a, T> {
         }
     }
 
+    /// Returns a reference to the forest.
+    #[inline]
+    #[must_use]
+    pub fn forest(&self) -> &Forest<T> {
+        self.forest
+    }
+
+    /// Returns a mutable reference to the forest.
+    #[inline]
+    #[must_use]
+    pub fn forest_mut(&mut self) -> &mut Forest<T> {
+        self.forest
+    }
+
     /// Returns the node ID of the root node.
     #[inline]
     #[must_use]

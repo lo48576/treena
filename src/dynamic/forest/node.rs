@@ -60,7 +60,7 @@ impl<'a, T> Node<'a, T> {
     /// Returns a reference to the data associated to the node.
     #[inline]
     #[must_use]
-    pub fn data(&self) -> &T {
+    pub fn data(&self) -> &'a T {
         self.forest
             .data(self.id)
             .expect("[validity] the node has been checked to be alive")
@@ -719,6 +719,8 @@ impl<'a, T> NodeMut<'a, T> {
     }
 
     /// Returns a reference to the forest.
+    ///
+    /// Note that the returned reference cannot live longer than the `NodeMut`.
     #[inline]
     #[must_use]
     pub fn forest(&self) -> &Forest<T> {
@@ -733,6 +735,8 @@ impl<'a, T> NodeMut<'a, T> {
     }
 
     /// Returns a reference to the data associated to the node.
+    ///
+    /// Note that the returned reference cannot live longer than the `NodeMut`.
     #[inline]
     #[must_use]
     pub fn data(&self) -> &T {
@@ -742,9 +746,20 @@ impl<'a, T> NodeMut<'a, T> {
     }
 
     /// Returns a mutable reference to the data associated to the node.
+    ///
+    /// Note that the returned reference cannot live longer than the `NodeMut`.
     #[inline]
     #[must_use]
     pub fn data_mut(&mut self) -> &mut T {
+        self.forest
+            .data_mut(self.id)
+            .expect("[validity] the node has been checked to be alive")
+    }
+
+    /// Returns a mutable reference to the data associated to the node.
+    ///
+    /// Note that this method consumes the `NodeMut`.
+    pub fn into_data_ref_mut(self) -> &'a mut T {
         self.forest
             .data_mut(self.id)
             .expect("[validity] the node has been checked to be alive")
@@ -955,6 +970,7 @@ impl<'a, T> NodeMut<'a, T> {
     /// # }
     /// ```
     #[inline]
+    #[must_use = "newly created node cannot be accessed without the returned node ID"]
     pub fn create(&mut self, data: T, dest: AdoptAs) -> NodeId {
         self.forest
             .create_insert(data, dest.insert_with_anchor(self.id))

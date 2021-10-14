@@ -40,3 +40,20 @@ impl fmt::Debug for NodeId {
         write!(f, "NodeId({:?})", self.0)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use core::mem;
+
+    #[test]
+    fn niche_optimized() {
+        assert_eq!(
+            mem::size_of::<NodeId>(),
+            mem::size_of::<Option<NodeId>>(),
+            "`Option<NodeId>` type must have the same size as \
+             `NodeId` type due to niche optimization"
+        );
+    }
+}
