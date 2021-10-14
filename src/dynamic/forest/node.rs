@@ -970,6 +970,7 @@ impl<'a, T> NodeMut<'a, T> {
     /// # }
     /// ```
     #[inline]
+    #[must_use = "newly created node cannot be accessed without the returned node ID"]
     pub fn create(&mut self, data: T, dest: AdoptAs) -> NodeId {
         self.forest
             .create_insert(data, dest.insert_with_anchor(self.id))

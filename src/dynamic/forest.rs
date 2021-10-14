@@ -324,6 +324,7 @@ impl<T> Forest<T> {
     ///     "the root node does not have children"
     /// );
     /// ```
+    #[must_use = "newly created node cannot be accessed without the returned node ID"]
     pub fn create_root(&mut self, data: T) -> NodeId {
         let new_id = self.hierarchy.create_root();
         assert_eq!(
@@ -346,6 +347,7 @@ impl<T> Forest<T> {
     ///
     /// Panics if the node (the anchor of the destination) is not alive.
     #[inline]
+    #[must_use = "newly created node cannot be accessed without the returned node ID"]
     pub fn create_insert(&mut self, data: T, dest: InsertAs) -> NodeId {
         let new_id = self.create_root(data);
         self.insert(new_id, dest)
@@ -1544,6 +1546,7 @@ impl<T: Clone> Forest<T> {
     /// );
     /// # }
     /// ```
+    #[must_use = "newly created node cannot be accessed without the returned node ID"]
     pub fn clone_local_tree(&mut self, src_id: NodeId) -> NodeId {
         self.clone_local_tree_with_id_mapping(src_id, |_, _| ())
     }
@@ -1601,6 +1604,7 @@ impl<T: Clone> Forest<T> {
     /// );
     /// # }
     /// ```
+    #[must_use = "newly created node cannot be accessed without the returned node ID"]
     pub fn clone_foreign_tree(&mut self, src_root: Node<'_, T>) -> NodeId {
         self.clone_foreign_tree_with_id_mapping(src_root, |_, _| ())
     }
@@ -1662,7 +1666,7 @@ impl<T: Clone> Forest<T> {
     /// }
     /// # }
     /// ```
-    #[must_use]
+    #[must_use = "newly created node cannot be accessed without the returned node ID"]
     pub fn clone_local_tree_with_id_mapping<F>(
         &mut self,
         src_id: NodeId,
@@ -1781,7 +1785,7 @@ impl<T: Clone> Forest<T> {
     /// }
     /// # }
     /// ```
-    #[must_use]
+    #[must_use = "newly created node cannot be accessed without the returned node ID"]
     pub fn clone_foreign_tree_with_id_mapping<F>(
         &mut self,
         src_root: Node<'_, T>,
