@@ -1489,6 +1489,191 @@ impl<T> Forest<T> {
     }
 }
 
+/// Tree cloning.
+impl<T: Clone> Forest<T> {
+    /// Clones a subtree as a new tree in the forest, and returns the new root ID.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node (including descendants) are not alive.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #[cfg(feature = "debug-print")] {
+    /// # use treena::dynamic::{Forest, TreeBuilder};
+    /// # let mut forest = Forest::new();
+    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let child_1 = builder
+    /// #     .child("0")
+    /// #     .sibling("1")
+    /// #     .current_id();
+    /// # builder
+    /// #     .child("1-0")
+    /// #     .sibling("1-1")
+    /// #     .sibling("1-2")
+    /// #     .parent()
+    /// #     .sibling("2");
+    /// # let root = builder.root_id();
+    /// let before = r#"root
+    /// |-- 0
+    /// |-- 1
+    /// |   |-- 1-0
+    /// |   |-- 1-1
+    /// |   `-- 1-2
+    /// `-- 2"#;
+    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
+    /// assert_eq!(forest.debug_print(root).to_string(), before);
+    ///
+    /// // Clone a tree.
+    /// let cloned = forest.clone_local_tree(child_1);
+    ///
+    /// let cloned_expected = r#"1
+    /// |-- 1-0
+    /// |-- 1-1
+    /// `-- 1-2"#;
+    /// assert_eq!(forest.debug_print(cloned).to_string(), cloned_expected);
+    /// assert!(
+    ///     forest.node(cloned).expect("must be alive").parent_id().is_none(),
+    ///     "The new node is a root node of an independent tree and has no parent"
+    /// );
+    /// # }
+    /// ```
+    pub fn clone_local_tree(&mut self, src_id: NodeId) -> NodeId {
+        let root_data = self
+            .data(src_id)
+            .expect("[consistency] the node must be alive")
+            .clone();
+        let root_id = self.create_root(root_data);
+        let mut current_dest = root_id;
+        let mut traverser = SafeModeDepthFirstTraverser::new(src_id, &self.hierarchy);
+
+        // Skip the open event of the root node.
+        let _ = traverser.next(&self.hierarchy);
+
+        while let Some(ev) = traverser.next(&self.hierarchy) {
+            match ev {
+                DftEvent::Open(src_id) => {
+                    let data = self
+                        .data(src_id)
+                        .expect("[consistency] the node being traversed must be alive")
+                        .clone();
+                    current_dest = self.create_insert(data, InsertAs::LastChildOf(current_dest));
+                }
+                DftEvent::Close(_) => {
+                    let parent = self
+                        .node(current_dest)
+                        .expect("[consistency] the node being created must be alive")
+                        .parent_id();
+                    current_dest = match parent {
+                        Some(id) => id,
+                        None => {
+                            assert_eq!(
+                                current_dest, root_id,
+                                "[consistency] current node must be the root if it has no parent"
+                            );
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        assert_eq!(
+            current_dest, root_id,
+            "[consistency] all nodes including the root must have been closed"
+        );
+
+        root_id
+    }
+
+    /// Clones a subtree from another forest as a new tree, and returns the new
+    /// root ID in this forest.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the node is not alive.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #[cfg(feature = "debug-print")] {
+    /// # use treena::dynamic::{Forest, TreeBuilder};
+    /// # let mut forest_src = Forest::new();
+    /// # let mut builder = TreeBuilder::new(&mut forest_src, "root");
+    /// # let child_1 = builder
+    /// #     .child("0")
+    /// #     .sibling("1")
+    /// #     .current_id();
+    /// # builder
+    /// #     .child("1-0")
+    /// #     .sibling("1-1")
+    /// #     .sibling("1-2")
+    /// #     .parent()
+    /// #     .sibling("2");
+    /// # let root = builder.root_id();
+    /// let before = r#"root
+    /// |-- 0
+    /// |-- 1
+    /// |   |-- 1-0
+    /// |   |-- 1-1
+    /// |   `-- 1-2
+    /// `-- 2"#;
+    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
+    /// assert_eq!(forest_src.debug_print(root).to_string(), before);
+    ///
+    /// // Destination forest.
+    /// let mut forest_dest = Forest::new();
+    ///
+    /// // Clone a tree.
+    /// let tree_src = forest_src.node(child_1).expect("the node is available");
+    /// let cloned = forest_dest.clone_foreign_tree(tree_src);
+    ///
+    /// let cloned_expected = r#"1
+    /// |-- 1-0
+    /// |-- 1-1
+    /// `-- 1-2"#;
+    /// assert_eq!(forest_dest.debug_print(cloned).to_string(), cloned_expected);
+    /// assert!(
+    ///     forest_dest.node(cloned).expect("must be alive").parent_id().is_none(),
+    ///     "The new node is a root node of an independent tree and has no parent"
+    /// );
+    /// # }
+    /// ```
+    pub fn clone_foreign_tree(&mut self, src_root: Node<'_, T>) -> NodeId {
+        use crate::dynamic::forest::traverse::DftEvent;
+
+        let mut events = src_root.depth_first_traverse();
+        let root_data = match events.next() {
+            None => unreachable!(
+                "[validity] iterator must emit at least two events since it has the root node"
+            ),
+            Some(DftEvent::Open(node)) => node.data().clone(),
+            Some(DftEvent::Close(_)) => {
+                unreachable!("[validity] `DepthFirstTraverse` must emit the open event first")
+            }
+        };
+        let mut builder = TreeBuilder::new(self, root_data);
+
+        for ev in events {
+            match ev {
+                DftEvent::Open(node) => {
+                    let data = node.data().clone();
+                    builder.child(data);
+                }
+                DftEvent::Close(_) => {
+                    // When `builder.try_parent().is_none()` is true, it
+                    // means that the node being closed is the root node of the
+                    // new tree. It is not an error and no action needed here,
+                    // since no more events will be provided from `events`.
+                    let _ = builder.try_parent();
+                }
+            }
+        }
+
+        builder.root_id()
+    }
+}
+
 /// Debug printing.
 #[cfg(feature = "debug-print")]
 impl<T> Forest<T> {
