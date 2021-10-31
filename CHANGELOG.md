@@ -1,5 +1,13 @@
 # Change Log
 
+## [Unreleased]
+
+* Bump minimum supported rust version to 1.56.
+
+### Changed (breaking)
+
+* Bump minimum supported rust version to 1.56.
+
 ## [0.0.2]
 
 * Implement `std::error::Error` trait for an error type.
