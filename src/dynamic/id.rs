@@ -14,9 +14,9 @@ use crate::nonmax::NonMaxUsize;
 /// the value, but not for manipulating internal integer value extracted by
 /// `Debug` trait.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct NodeId(NonMaxUsize);
+pub struct NodeIdUsize(NonMaxUsize);
 
-impl NodeId {
+impl NodeIdUsize {
     /// Returns the raw `usize` value.
     #[inline]
     #[must_use]
@@ -35,7 +35,7 @@ impl NodeId {
 }
 
 // Prevent `{:#?}` from printing the value in redundant 3 lines.
-impl fmt::Debug for NodeId {
+impl fmt::Debug for NodeIdUsize {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "NodeId({:?})", self.0)
     }
@@ -50,8 +50,8 @@ mod tests {
     #[test]
     fn niche_optimized() {
         assert_eq!(
-            mem::size_of::<NodeId>(),
-            mem::size_of::<Option<NodeId>>(),
+            mem::size_of::<NodeIdUsize>(),
+            mem::size_of::<Option<NodeIdUsize>>(),
             "`Option<NodeId>` type must have the same size as \
              `NodeId` type due to niche optimization"
         );

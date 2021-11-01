@@ -1,7 +1,7 @@
 //! Tree and forest builder.
 
 use crate::dynamic::forest::Forest;
-use crate::dynamic::{InsertAs, NodeId};
+use crate::dynamic::{InsertAs, NodeIdUsize};
 
 /// Tree builder.
 ///
@@ -152,9 +152,9 @@ pub struct TreeBuilder<'a, T> {
     /// Target forest.
     forest: &'a mut Forest<T>,
     /// Node ID of the root node.
-    root: NodeId,
+    root: NodeIdUsize,
     /// Current node.
-    current: NodeId,
+    current: NodeIdUsize,
 }
 
 impl<'a, T> TreeBuilder<'a, T> {
@@ -185,14 +185,14 @@ impl<'a, T> TreeBuilder<'a, T> {
     /// Returns the node ID of the root node.
     #[inline]
     #[must_use]
-    pub fn root_id(&self) -> NodeId {
+    pub fn root_id(&self) -> NodeIdUsize {
         self.root
     }
 
     /// Returns the node ID of the current node.
     #[inline]
     #[must_use]
-    pub fn current_id(&self) -> NodeId {
+    pub fn current_id(&self) -> NodeIdUsize {
         self.current
     }
 

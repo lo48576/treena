@@ -1,6 +1,6 @@
 //! Anchors.
 
-use crate::dynamic::NodeId;
+use crate::dynamic::NodeIdUsize;
 
 /// Relation of the node being `adopt`ed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -18,7 +18,7 @@ pub enum AdoptAs {
 impl AdoptAs {
     /// Creates `InsertAs` with the given anchor.
     #[must_use]
-    pub(super) fn insert_with_anchor(self, anchor: NodeId) -> InsertAs {
+    pub(super) fn insert_with_anchor(self, anchor: NodeIdUsize) -> InsertAs {
         match self {
             Self::FirstChild => InsertAs::FirstChildOf(anchor),
             Self::LastChild => InsertAs::LastChildOf(anchor),
@@ -35,11 +35,11 @@ impl AdoptAs {
 #[allow(clippy::enum_variant_names)]
 pub enum InsertAs {
     /// As the first child.
-    FirstChildOf(NodeId),
+    FirstChildOf(NodeIdUsize),
     /// As the last child.
-    LastChildOf(NodeId),
+    LastChildOf(NodeIdUsize),
     /// As the previous sibling.
-    PreviousSiblingOf(NodeId),
+    PreviousSiblingOf(NodeIdUsize),
     /// As the next sibling.
-    NextSiblingOf(NodeId),
+    NextSiblingOf(NodeIdUsize),
 }

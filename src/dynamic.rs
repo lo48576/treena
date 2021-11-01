@@ -15,7 +15,7 @@
 //! ## Node ID
 //!
 //! Each node has internally unique node ID. A node ID is represented by
-//! [`NodeId`] type.
+//! [`NodeIdUsize`] type.
 //!
 //! Note that node IDs are not guaranteed to be unique among forests. In fact,
 //! node IDs will conflict almost certainly in the current
@@ -41,4 +41,4 @@ pub use self::forest::traverse::{
 #[cfg(any(feature = "debug-print"))]
 pub use self::forest::DebugPrint;
 pub use self::forest::{Forest, Node, NodeMut, StructureError, TreeBuilder};
-pub use self::id::NodeId;
+pub use self::id::NodeIdUsize;

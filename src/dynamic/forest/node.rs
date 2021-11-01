@@ -8,7 +8,7 @@ use crate::dynamic::forest::traverse::{
 };
 use crate::dynamic::forest::StructureError;
 use crate::dynamic::hierarchy::Hierarchy;
-use crate::dynamic::{AdoptAs, Forest, NodeId};
+use crate::dynamic::{AdoptAs, Forest, NodeIdUsize};
 
 /// Immutable reference to a node.
 ///
@@ -19,14 +19,14 @@ pub struct Node<'a, T> {
     /// Forest.
     forest: &'a Forest<T>,
     /// Node ID.
-    id: NodeId,
+    id: NodeIdUsize,
 }
 
 /// Node creation.
 impl<'a, T> Node<'a, T> {
     /// Creates a new `Node` object.
     #[must_use]
-    pub(super) fn new(forest: &'a Forest<T>, id: NodeId) -> Option<Self> {
+    pub(super) fn new(forest: &'a Forest<T>, id: NodeIdUsize) -> Option<Self> {
         if !forest.is_alive(id) {
             return None;
         }
@@ -53,7 +53,7 @@ impl<'a, T> Node<'a, T> {
     /// Returns the node ID.
     #[inline]
     #[must_use]
-    pub fn id(&self) -> NodeId {
+    pub fn id(&self) -> NodeIdUsize {
         self.id
     }
 
@@ -71,7 +71,7 @@ impl<'a, T> Node<'a, T> {
 impl<'a, T> Node<'a, T> {
     /// Returns the node ID of the parent.
     #[must_use]
-    pub fn parent_id(&self) -> Option<NodeId> {
+    pub fn parent_id(&self) -> Option<NodeIdUsize> {
         self.forest
             .neighbors(self.id)
             .expect("[validity] the node has been checked to be alive")
@@ -80,7 +80,7 @@ impl<'a, T> Node<'a, T> {
 
     /// Returns the node ID of the next sibling.
     #[must_use]
-    pub fn next_sibling_id(&self) -> Option<NodeId> {
+    pub fn next_sibling_id(&self) -> Option<NodeIdUsize> {
         self.forest
             .neighbors(self.id)
             .expect("[validity] the node has been checked to be alive")
@@ -89,7 +89,7 @@ impl<'a, T> Node<'a, T> {
 
     /// Returns the node ID of the previous sibling.
     #[must_use]
-    pub fn prev_sibling_id(&self) -> Option<NodeId> {
+    pub fn prev_sibling_id(&self) -> Option<NodeIdUsize> {
         self.forest
             .neighbors(self.id)
             .expect("[validity] the node has been checked to be alive")
@@ -98,7 +98,7 @@ impl<'a, T> Node<'a, T> {
 
     /// Returns the node ID of the first child.
     #[must_use]
-    pub fn first_child_id(&self) -> Option<NodeId> {
+    pub fn first_child_id(&self) -> Option<NodeIdUsize> {
         self.forest
             .neighbors(self.id)
             .expect("[validity] the node has been checked to be alive")
@@ -107,7 +107,7 @@ impl<'a, T> Node<'a, T> {
 
     /// Returns the node ID of the last child.
     #[must_use]
-    pub fn last_child_id(&self) -> Option<NodeId> {
+    pub fn last_child_id(&self) -> Option<NodeIdUsize> {
         self.forest
             .neighbors(self.id)
             .expect("[validity] the node has been checked to be alive")
@@ -116,7 +116,7 @@ impl<'a, T> Node<'a, T> {
 
     /// Returns the node IDs of the first child and the last child.
     #[must_use]
-    pub fn first_last_child_id(&self) -> Option<(NodeId, NodeId)> {
+    pub fn first_last_child_id(&self) -> Option<(NodeIdUsize, NodeIdUsize)> {
         self.forest
             .neighbors(self.id)
             .expect("[validity] the node has been checked to be alive")
@@ -689,14 +689,14 @@ pub struct NodeMut<'a, T> {
     /// Forest.
     forest: &'a mut Forest<T>,
     /// Node ID.
-    id: NodeId,
+    id: NodeIdUsize,
 }
 
 /// Creation.
 impl<'a, T> NodeMut<'a, T> {
     /// Creates a new `Node` object.
     #[must_use]
-    pub(super) fn new(forest: &'a mut Forest<T>, id: NodeId) -> Option<Self> {
+    pub(super) fn new(forest: &'a mut Forest<T>, id: NodeIdUsize) -> Option<Self> {
         if !forest.is_alive(id) {
             return None;
         }
@@ -730,7 +730,7 @@ impl<'a, T> NodeMut<'a, T> {
     /// Returns the node ID.
     #[inline]
     #[must_use]
-    pub fn id(&self) -> NodeId {
+    pub fn id(&self) -> NodeIdUsize {
         self.id
     }
 
@@ -971,7 +971,7 @@ impl<'a, T> NodeMut<'a, T> {
     /// ```
     #[inline]
     #[must_use = "newly created node cannot be accessed without the returned node ID"]
-    pub fn create(&mut self, data: T, dest: AdoptAs) -> NodeId {
+    pub fn create(&mut self, data: T, dest: AdoptAs) -> NodeIdUsize {
         self.forest
             .create_insert(data, dest.insert_with_anchor(self.id))
     }
@@ -1051,7 +1051,7 @@ impl<'a, T> NodeMut<'a, T> {
     /// assert_eq!(forest.debug_print(root).to_string(), after_adopt);
     /// # }
     /// ```
-    pub fn adopt(&mut self, node: NodeId, dest: AdoptAs) {
+    pub fn adopt(&mut self, node: NodeIdUsize, dest: AdoptAs) {
         self.try_adopt(node, dest)
             .expect("[precondition] structure to be made should be valid");
     }
@@ -1069,7 +1069,7 @@ impl<'a, T> NodeMut<'a, T> {
     /// * [`StructureError::SiblingsWithoutParent`]
     ///     + In case `dest` is `PreviousSibling` or `NextSibling`, and
     ///       `self` does not have a parent.
-    pub fn try_adopt(&mut self, node: NodeId, dest: AdoptAs) -> Result<(), StructureError> {
+    pub fn try_adopt(&mut self, node: NodeIdUsize, dest: AdoptAs) -> Result<(), StructureError> {
         self.forest
             .hierarchy
             .insert(node, dest.insert_with_anchor(self.id))

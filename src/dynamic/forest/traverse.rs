@@ -7,7 +7,7 @@ use crate::dynamic::hierarchy::traverse::{
     AllocatingBreadthFirstTraverser, AncestorsTraverser, BreadthFirstTraverser,
     DepthFirstTraverser, DftEvent as DftEventSrc, ShallowDepthFirstTraverser, SiblingsTraverser,
 };
-use crate::dynamic::NodeId;
+use crate::dynamic::NodeIdUsize;
 
 /// Depth-first traverseal event.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -34,7 +34,7 @@ impl<T> DftEvent<T> {
     #[must_use]
     fn from_hierarchy_dft_event<F>(ev: DftEventSrc, f: F) -> Self
     where
-        F: FnOnce(NodeId) -> T,
+        F: FnOnce(NodeIdUsize) -> T,
     {
         match ev {
             DftEventSrc::Open(v) => Self::Open(f(v)),
