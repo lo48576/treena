@@ -178,8 +178,8 @@ impl Hierarchy {
     /// Tree structure under the given node will be preserved.
     /// The detached node will become a root node.
     ///
-    /// If you want to detach not subtree but single node, use [`detach_single`]
-    /// method.
+    /// If you want to detach not subtree but single node, use
+    /// [`detach_single`][`Self::detach_single`] method.
     ///
     /// ```text
     /// Before `detach`:
@@ -235,8 +235,8 @@ impl Hierarchy {
     ///
     /// Children are inserted to the place where the detached node was.
     ///
-    /// If you want to detach not single node but subtree, use [`detach`]
-    /// method.
+    /// If you want to detach not single node but subtree, use
+    /// [`detach`][`Self::detach`] method.
     ///
     /// ```text
     /// Before `detach_single`:
