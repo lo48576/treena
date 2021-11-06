@@ -41,4 +41,4 @@ pub use self::forest::traverse::{
 #[cfg(any(feature = "debug-print"))]
 pub use self::forest::DebugPrint;
 pub use self::forest::{Forest, Node, NodeMut, StructureError, TreeBuilder};
-pub use self::id::NodeIdUsize;
+pub use self::id::{InternalNodeId, NodeId, NodeIdUsize};
