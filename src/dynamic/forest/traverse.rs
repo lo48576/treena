@@ -32,7 +32,7 @@ impl<T> DftEvent<T> {
 
     /// Creates `DftEvent` from `hierarchy::traverse::DftEvent`.
     #[must_use]
-    fn from_hierarchy_dft_event<F>(ev: DftEventSrc, f: F) -> Self
+    fn from_hierarchy_dft_event<F>(ev: DftEventSrc<NodeIdUsize>, f: F) -> Self
     where
         F: FnOnce(NodeIdUsize) -> T,
     {
@@ -49,7 +49,7 @@ pub struct DepthFirstTraverse<'a, T> {
     /// Forest.
     forest: &'a Forest<T>,
     /// Traverser.
-    traverser: DepthFirstTraverser,
+    traverser: DepthFirstTraverser<NodeIdUsize>,
 }
 
 impl<'a, T> DepthFirstTraverse<'a, T> {
@@ -121,7 +121,7 @@ pub struct ShallowDepthFirstTraverse<'a, T> {
     /// Forest.
     forest: &'a Forest<T>,
     /// Traverser.
-    traverser: ShallowDepthFirstTraverser,
+    traverser: ShallowDepthFirstTraverser<NodeIdUsize>,
 }
 
 impl<'a, T> ShallowDepthFirstTraverse<'a, T> {
@@ -216,7 +216,7 @@ pub struct Ancestors<'a, T> {
     /// Forest.
     forest: &'a Forest<T>,
     /// Traverser.
-    traverser: AncestorsTraverser,
+    traverser: AncestorsTraverser<NodeIdUsize>,
 }
 
 impl<'a, T> Ancestors<'a, T> {
@@ -263,7 +263,7 @@ pub struct Siblings<'a, T> {
     /// Forest.
     forest: &'a Forest<T>,
     /// Traverser.
-    traverser: SiblingsTraverser,
+    traverser: SiblingsTraverser<NodeIdUsize>,
 }
 
 impl<'a, T> Siblings<'a, T> {
@@ -357,7 +357,7 @@ pub struct BreadthFirstTraverse<'a, T> {
     /// Forest.
     forest: &'a Forest<T>,
     /// Traverser.
-    traverser: BreadthFirstTraverser,
+    traverser: BreadthFirstTraverser<NodeIdUsize>,
 }
 
 impl<'a, T> BreadthFirstTraverse<'a, T> {
@@ -396,7 +396,7 @@ pub struct AllocatingBreadthFirstTraverse<'a, T> {
     /// Forest.
     forest: &'a Forest<T>,
     /// Traverser.
-    traverser: AllocatingBreadthFirstTraverser,
+    traverser: AllocatingBreadthFirstTraverser<NodeIdUsize>,
 }
 
 impl<'a, T> AllocatingBreadthFirstTraverse<'a, T> {

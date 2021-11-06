@@ -114,7 +114,7 @@ pub use self::node::{Node, NodeMut};
 #[derive(Debug, Clone)]
 pub struct Forest<T> {
     /// Hierarchy.
-    hierarchy: Hierarchy,
+    hierarchy: Hierarchy<NodeIdUsize>,
     /// Data.
     ///
     /// `None` is used for removed nodes.
@@ -264,7 +264,7 @@ impl<T> Forest<T> {
     /// Returns a reference to the neighbors data associated to the node.
     #[inline]
     #[must_use]
-    fn neighbors(&self, id: NodeIdUsize) -> Option<&Neighbors> {
+    fn neighbors(&self, id: NodeIdUsize) -> Option<&Neighbors<NodeIdUsize>> {
         self.hierarchy.neighbors(id)
     }
 }

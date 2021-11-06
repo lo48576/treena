@@ -46,7 +46,7 @@ impl<'a, T> Node<'a, T> {
     /// Returns a reference to the hierarchy.
     #[inline]
     #[must_use]
-    pub(crate) fn hierarchy(&self) -> &'a Hierarchy {
+    pub(crate) fn hierarchy(&self) -> &'a Hierarchy<NodeIdUsize> {
         &self.forest.hierarchy
     }
 
