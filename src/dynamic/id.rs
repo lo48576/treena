@@ -20,7 +20,7 @@ impl NodeIdUsize {
     /// Returns the raw `usize` value.
     #[inline]
     #[must_use]
-    pub(crate) const fn get(self) -> usize {
+    pub(crate) const fn to_usize(self) -> usize {
         self.0.get()
     }
 

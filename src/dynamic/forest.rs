@@ -152,7 +152,7 @@ impl<T> Forest<T> {
     #[must_use]
     fn is_alive(&self, id: NodeIdUsize) -> bool {
         self.data
-            .get(id.get())
+            .get(id.to_usize())
             .map_or(false, |entry| entry.is_some())
     }
 
@@ -233,7 +233,9 @@ impl<T> Forest<T> {
     #[inline]
     #[must_use]
     pub fn data(&self, id: NodeIdUsize) -> Option<&T> {
-        self.data.get(id.get()).and_then(|entry| entry.as_ref())
+        self.data
+            .get(id.to_usize())
+            .and_then(|entry| entry.as_ref())
     }
 
     /// Returns a reference to the data associated to the node.
@@ -254,7 +256,9 @@ impl<T> Forest<T> {
     #[inline]
     #[must_use]
     pub fn data_mut(&mut self, id: NodeIdUsize) -> Option<&mut T> {
-        self.data.get_mut(id.get()).and_then(|entry| entry.as_mut())
+        self.data
+            .get_mut(id.to_usize())
+            .and_then(|entry| entry.as_mut())
     }
 
     /// Returns a reference to the neighbors data associated to the node.
@@ -329,7 +333,7 @@ impl<T> Forest<T> {
         let new_id = self.hierarchy.create_root();
         assert_eq!(
             self.data.len(),
-            new_id.get(),
+            new_id.to_usize(),
             "[consistency] node ID must be able to be used as an index for the vec"
         );
         self.data.push(Some(data));
@@ -805,7 +809,7 @@ impl<T> Forest<T> {
                 "[consistency] the detached leaf node must be alone"
             );
             nbs.make_removed();
-            let data = self.data[id.get()]
+            let data = self.data[id.to_usize()]
                 .take()
                 .expect("[consistency] the node must have an associated data");
             f(data);
@@ -900,7 +904,7 @@ impl<T> Forest<T> {
                 .neighbors_mut(id)
                 .expect("[consistency] the current node must be alive here");
             nbs.force_make_removed();
-            let data = self.data[id.get()]
+            let data = self.data[id.to_usize()]
                 .take()
                 .expect("[consistency] the node must have an associated data");
             f(data);

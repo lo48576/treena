@@ -35,7 +35,7 @@ impl Hierarchy {
     /// Returns `None` if the node ID is invalid or the node has already been removed.
     #[must_use]
     pub(crate) fn neighbors(&self, id: NodeIdUsize) -> Option<&Neighbors> {
-        self.neighbors.get(id.get()).filter(|v| v.is_alive())
+        self.neighbors.get(id.to_usize()).filter(|v| v.is_alive())
     }
 
     /// Returns a mutable reference to the neighbors for the node if the node is alive.
@@ -43,13 +43,17 @@ impl Hierarchy {
     /// Returns `None` if the node ID is invalid or the node has already been removed.
     #[must_use]
     pub(crate) fn neighbors_mut(&mut self, id: NodeIdUsize) -> Option<&mut Neighbors> {
-        self.neighbors.get_mut(id.get()).filter(|v| v.is_alive())
+        self.neighbors
+            .get_mut(id.to_usize())
+            .filter(|v| v.is_alive())
     }
 
     /// Returns true if the node is alive.
     #[must_use]
     pub(crate) fn is_alive(&self, id: NodeIdUsize) -> bool {
-        self.neighbors.get(id.get()).map_or(false, |v| v.is_alive())
+        self.neighbors
+            .get(id.to_usize())
+            .map_or(false, |v| v.is_alive())
     }
 
     /// Connects the given adjacent neighbors and updates fields properly.
