@@ -348,7 +348,7 @@ impl Hierarchy {
     pub(crate) fn insert(
         &mut self,
         node: NodeIdUsize,
-        dest: InsertAs,
+        dest: InsertAs<NodeIdUsize>,
     ) -> Result<(), StructureError> {
         match dest {
             InsertAs::FirstChildOf(parent) => self.prepend_child(node, parent),

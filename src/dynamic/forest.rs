@@ -352,7 +352,7 @@ impl<T> Forest<T> {
     /// Panics if the node (the anchor of the destination) is not alive.
     #[inline]
     #[must_use = "newly created node cannot be accessed without the returned node ID"]
-    pub fn create_insert(&mut self, data: T, dest: InsertAs) -> NodeIdUsize {
+    pub fn create_insert(&mut self, data: T, dest: InsertAs<NodeIdUsize>) -> NodeIdUsize {
         let new_id = self.create_root(data);
         self.insert(new_id, dest)
             .expect("[consistency] newly created node is independent from the destination");
@@ -574,7 +574,11 @@ impl<T> Forest<T> {
     /// # }
     /// ```
     #[inline]
-    pub fn insert(&mut self, node: NodeIdUsize, dest: InsertAs) -> Result<(), StructureError> {
+    pub fn insert(
+        &mut self,
+        node: NodeIdUsize,
+        dest: InsertAs<NodeIdUsize>,
+    ) -> Result<(), StructureError> {
         self.hierarchy.insert(node, dest)
     }
 }
