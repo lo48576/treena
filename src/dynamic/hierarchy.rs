@@ -7,7 +7,7 @@ use core::fmt;
 use alloc::vec::Vec;
 
 use crate::dynamic::forest::StructureError;
-use crate::dynamic::{InsertAs, InternalNodeId, NodeIdUsize};
+use crate::dynamic::{InsertAs, InternalNodeId};
 
 /// A forest without custom data tied to nodes.
 #[derive(Debug, Clone)]
@@ -22,8 +22,8 @@ impl<Id: InternalNodeId> Hierarchy<Id> {
     /// # Panics
     ///
     /// Panics if the node ID overflows.
-    pub(crate) fn create_root(&mut self) -> NodeIdUsize {
-        let new_id = NodeIdUsize::from_usize(self.neighbors.len())
+    pub(crate) fn create_root(&mut self) -> Id {
+        let new_id = Id::from_usize(self.neighbors.len())
             .expect("[precondition] node ID overflowed presumably due to too many node creations");
         self.neighbors.push(Neighbors::new_root(new_id));
 
@@ -34,7 +34,7 @@ impl<Id: InternalNodeId> Hierarchy<Id> {
     ///
     /// Returns `None` if the node ID is invalid or the node has already been removed.
     #[must_use]
-    pub(crate) fn neighbors(&self, id: NodeIdUsize) -> Option<&Neighbors<Id>> {
+    pub(crate) fn neighbors(&self, id: Id) -> Option<&Neighbors<Id>> {
         self.neighbors.get(id.to_usize()).filter(|v| v.is_alive())
     }
 
@@ -42,7 +42,7 @@ impl<Id: InternalNodeId> Hierarchy<Id> {
     ///
     /// Returns `None` if the node ID is invalid or the node has already been removed.
     #[must_use]
-    pub(crate) fn neighbors_mut(&mut self, id: NodeIdUsize) -> Option<&mut Neighbors<Id>> {
+    pub(crate) fn neighbors_mut(&mut self, id: Id) -> Option<&mut Neighbors<Id>> {
         self.neighbors
             .get_mut(id.to_usize())
             .filter(|v| v.is_alive())
@@ -50,7 +50,7 @@ impl<Id: InternalNodeId> Hierarchy<Id> {
 
     /// Returns true if the node is alive.
     #[must_use]
-    pub(crate) fn is_alive(&self, id: NodeIdUsize) -> bool {
+    pub(crate) fn is_alive(&self, id: Id) -> bool {
         self.neighbors
             .get(id.to_usize())
             .map_or(false, |v| v.is_alive())
@@ -97,9 +97,9 @@ impl<Id: InternalNodeId> Hierarchy<Id> {
     ///   identical, since a node cannot be adjacent sibling of itself.
     fn connect_triangle(
         &mut self,
-        parent: Option<NodeIdUsize>,
-        prev_child: Option<NodeIdUsize>,
-        next_child: Option<NodeIdUsize>,
+        parent: Option<Id>,
+        prev_child: Option<Id>,
+        next_child: Option<Id>,
     ) {
         if parent.is_none() && prev_child.is_some() && next_child.is_some() {
             panic!("[precondition] nodes cannot have siblings without having a parent");
@@ -211,7 +211,7 @@ impl<Id: InternalNodeId> Hierarchy<Id> {
     /// # Panics
     ///
     /// Panics if the node is not alive.
-    pub(crate) fn detach(&mut self, node: NodeIdUsize) {
+    pub(crate) fn detach(&mut self, node: Id) {
         let nbs = self
             .neighbors(node)
             .expect("[precondition] the node must be alive");
@@ -273,7 +273,7 @@ impl<Id: InternalNodeId> Hierarchy<Id> {
     /// # Panics
     ///
     /// Panics if the node is not alive.
-    pub(crate) fn detach_single(&mut self, node: NodeIdUsize) -> Result<(), StructureError> {
+    pub(crate) fn detach_single(&mut self, node: Id) -> Result<(), StructureError> {
         let nbs = self
             .neighbors(node)
             .expect("[precondition] the node must be alive");
@@ -345,11 +345,7 @@ impl<Id: InternalNodeId> Hierarchy<Id> {
     /// * [`StructureError::SiblingsWithoutParent`]
     ///     + In case `dest` is `PreviousSiblingOf(v)` or `NextSiblingOf(v)`, and
     ///       `v` does not have a parent.
-    pub(crate) fn insert(
-        &mut self,
-        node: NodeIdUsize,
-        dest: InsertAs<NodeIdUsize>,
-    ) -> Result<(), StructureError> {
+    pub(crate) fn insert(&mut self, node: Id, dest: InsertAs<Id>) -> Result<(), StructureError> {
         match dest {
             InsertAs::FirstChildOf(parent) => self.prepend_child(node, parent),
             InsertAs::LastChildOf(parent) => self.append_child(node, parent),
@@ -369,11 +365,7 @@ impl<Id: InternalNodeId> Hierarchy<Id> {
     ///
     /// Panics if any of the given nodes are not alive.
     /// Panics if the `new_first_child` does not have a parent.
-    fn prepend_child(
-        &mut self,
-        new_first_child: NodeIdUsize,
-        parent: NodeIdUsize,
-    ) -> Result<(), StructureError> {
+    fn prepend_child(&mut self, new_first_child: Id, parent: Id) -> Result<(), StructureError> {
         let old_first_child = self
             .neighbors(parent)
             .expect("[precondition] the node must be alive")
@@ -397,11 +389,7 @@ impl<Id: InternalNodeId> Hierarchy<Id> {
     ///
     /// Panics if any of the given nodes are not alive.
     /// Panics if the `new_last_child` does not have a parent.
-    fn append_child(
-        &mut self,
-        new_last_child: NodeIdUsize,
-        parent: NodeIdUsize,
-    ) -> Result<(), StructureError> {
+    fn append_child(&mut self, new_last_child: Id, parent: Id) -> Result<(), StructureError> {
         let old_last_child = self
             .neighbors(parent)
             .expect("[precondition] the parent must be alive")
@@ -426,11 +414,7 @@ impl<Id: InternalNodeId> Hierarchy<Id> {
     ///
     /// Panics if any of the given nodes are not alive.
     /// Panics if the `next_sibling` does not have a parent.
-    fn insert_before(
-        &mut self,
-        node: NodeIdUsize,
-        next_sibling: NodeIdUsize,
-    ) -> Result<(), StructureError> {
+    fn insert_before(&mut self, node: Id, next_sibling: Id) -> Result<(), StructureError> {
         if node == next_sibling {
             return Err(StructureError::UnorderableSiblings);
         }
@@ -461,11 +445,7 @@ impl<Id: InternalNodeId> Hierarchy<Id> {
     ///
     /// Panics if any of the given nodes are not alive.
     /// Panics if the `prev_sibling` does not have a parent.
-    fn insert_after(
-        &mut self,
-        node: NodeIdUsize,
-        prev_sibling: NodeIdUsize,
-    ) -> Result<(), StructureError> {
+    fn insert_after(&mut self, node: Id, prev_sibling: Id) -> Result<(), StructureError> {
         if node == prev_sibling {
             return Err(StructureError::UnorderableSiblings);
         }
@@ -499,7 +479,7 @@ impl<Id: InternalNodeId> Default for Hierarchy<Id> {
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) struct Neighbors<Id> {
     /// Parent.
-    parent: Option<NodeIdUsize>,
+    parent: Option<Id>,
     /// Cyclic previous sibling.
     ///
     /// `None` if the node has already been removed.
@@ -511,26 +491,23 @@ pub(crate) struct Neighbors<Id> {
     ///
     /// See
     /// <http://www.aosabook.org/en/posa/parsing-xml-at-the-speed-of-light.html#data-structures-for-the-document-object-model>.
-    prev_sibling_cyclic: Option<NodeIdUsize>,
+    prev_sibling_cyclic: Option<Id>,
     /// Next sibling.
-    next_sibling: Option<NodeIdUsize>,
+    next_sibling: Option<Id>,
     /// First child.
-    first_child: Option<NodeIdUsize>,
-    /// Dummy.
-    _dummy: core::marker::PhantomData<Id>,
+    first_child: Option<Id>,
 }
 
 impl<Id: InternalNodeId> Neighbors<Id> {
     /// Creates a new `Neighbors` that is not connected to anyone.
     #[inline]
     #[must_use]
-    fn new_root(id: NodeIdUsize) -> Self {
+    fn new_root(id: Id) -> Self {
         Self {
             parent: None,
             prev_sibling_cyclic: Some(id),
             next_sibling: None,
             first_child: None,
-            _dummy: Default::default(),
         }
     }
 
@@ -548,7 +525,7 @@ impl<Id: InternalNodeId> Neighbors<Id> {
     /// Panics if the `self` node has already been removed.
     #[inline]
     #[must_use]
-    pub(crate) fn parent(&self) -> Option<NodeIdUsize> {
+    pub(crate) fn parent(&self) -> Option<Id> {
         if !self.is_alive() {
             panic!("[precondition] the node must be alive");
         }
@@ -562,7 +539,7 @@ impl<Id: InternalNodeId> Neighbors<Id> {
     /// Panics if the `self` node has already been removed.
     #[inline]
     #[must_use]
-    pub(crate) fn next_sibling(&self) -> Option<NodeIdUsize> {
+    pub(crate) fn next_sibling(&self) -> Option<Id> {
         if !self.is_alive() {
             panic!("[precondition] the node must be alive");
         }
@@ -575,7 +552,7 @@ impl<Id: InternalNodeId> Neighbors<Id> {
     ///
     /// Panics if the `self` node has already been removed.
     #[must_use]
-    pub(crate) fn prev_sibling(&self, hier: &Hierarchy<Id>) -> Option<NodeIdUsize> {
+    pub(crate) fn prev_sibling(&self, hier: &Hierarchy<Id>) -> Option<Id> {
         let prev_sibling_cyclic = match self.prev_sibling_cyclic {
             Some(v) => v,
             None => panic!("[precondition] the node must be alive"),
@@ -597,7 +574,7 @@ impl<Id: InternalNodeId> Neighbors<Id> {
     /// Panics if the `self` node has already been removed.
     #[inline]
     #[must_use]
-    pub(crate) fn first_child(&self) -> Option<NodeIdUsize> {
+    pub(crate) fn first_child(&self) -> Option<Id> {
         if !self.is_alive() {
             panic!("[precondition] the node must be alive");
         }
@@ -610,7 +587,7 @@ impl<Id: InternalNodeId> Neighbors<Id> {
     ///
     /// Panics if the `self` node has already been removed.
     #[must_use]
-    pub(crate) fn last_child(&self, hier: &Hierarchy<Id>) -> Option<NodeIdUsize> {
+    pub(crate) fn last_child(&self, hier: &Hierarchy<Id>) -> Option<Id> {
         self.first_last_child(hier).map(|(_first, last)| last)
     }
 
@@ -621,10 +598,7 @@ impl<Id: InternalNodeId> Neighbors<Id> {
     /// Panics if the `self` node has already been removed.
     #[inline]
     #[must_use]
-    pub(crate) fn first_last_child(
-        &self,
-        hier: &Hierarchy<Id>,
-    ) -> Option<(NodeIdUsize, NodeIdUsize)> {
+    pub(crate) fn first_last_child(&self, hier: &Hierarchy<Id>) -> Option<(Id, Id)> {
         if !self.is_alive() {
             panic!("[precondition] the node must be alive");
         }
@@ -694,8 +668,8 @@ impl<Id: fmt::Debug> fmt::Debug for Neighbors<Id> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         /// A wrapper to print optional node ID in compact form.
         #[derive(Clone, Copy)]
-        struct OptNodeId(Option<NodeIdUsize>);
-        impl fmt::Debug for OptNodeId {
+        struct OptNodeId<'a, Id>(&'a Option<Id>);
+        impl<Id: fmt::Debug> fmt::Debug for OptNodeId<'_, Id> {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 match self.0 {
                     Some(id) => id.fmt(f),
@@ -705,10 +679,10 @@ impl<Id: fmt::Debug> fmt::Debug for Neighbors<Id> {
         }
 
         f.debug_struct("Neighbors")
-            .field("parent", &OptNodeId(self.parent))
-            .field("prev_sibling_cyclic", &OptNodeId(self.prev_sibling_cyclic))
-            .field("next_sibling", &OptNodeId(self.next_sibling))
-            .field("first_child", &OptNodeId(self.first_child))
+            .field("parent", &OptNodeId(&self.parent))
+            .field("prev_sibling_cyclic", &OptNodeId(&self.prev_sibling_cyclic))
+            .field("next_sibling", &OptNodeId(&self.next_sibling))
+            .field("first_child", &OptNodeId(&self.first_child))
             .finish()
     }
 }
@@ -717,11 +691,9 @@ impl<Id: fmt::Debug> fmt::Debug for Neighbors<Id> {
 #[derive(Debug)]
 struct SiblingsRange<Id> {
     /// First node in the range.
-    first: NodeIdUsize,
+    first: Id,
     /// Last node in the range.
-    last: NodeIdUsize,
-    /// Dummy.
-    _dummy: core::marker::PhantomData<Id>,
+    last: Id,
 }
 
 impl<Id: InternalNodeId> SiblingsRange<Id> {
@@ -737,7 +709,7 @@ impl<Id: InternalNodeId> SiblingsRange<Id> {
     // efficient way to test siblings orders.
     // Without testing this, the function should be considered as unsafe.
     // For now, it is caller's responsibility to ensure siblings order.
-    fn new(hier: &Hierarchy<Id>, first: NodeIdUsize, last: NodeIdUsize) -> Self {
+    fn new(hier: &Hierarchy<Id>, first: Id, last: Id) -> Self {
         if first == last {
             return Self::with_single_toplevel(hier, first);
         }
@@ -754,11 +726,7 @@ impl<Id: InternalNodeId> SiblingsRange<Id> {
             panic!("[precondition] `first` and `last` must have the same parent");
         }
 
-        Self {
-            first,
-            last,
-            _dummy: Default::default(),
-        }
+        Self { first, last }
     }
 
     /// Creates a new siblings range from a single toplevel node.
@@ -766,7 +734,7 @@ impl<Id: InternalNodeId> SiblingsRange<Id> {
     /// # Panics
     ///
     /// * Panics if the node is not alive.
-    fn with_single_toplevel(hier: &Hierarchy<Id>, node: NodeIdUsize) -> Self {
+    fn with_single_toplevel(hier: &Hierarchy<Id>, node: Id) -> Self {
         if !hier.is_alive(node) {
             panic!("[precondition] the node must be alive");
         }
@@ -774,7 +742,6 @@ impl<Id: InternalNodeId> SiblingsRange<Id> {
         Self {
             first: node,
             last: node,
-            _dummy: Default::default(),
         }
     }
 
@@ -816,9 +783,9 @@ impl<Id: InternalNodeId> SiblingsRange<Id> {
     fn transplant(
         self,
         hier: &mut Hierarchy<Id>,
-        parent: NodeIdUsize,
-        prev_sibling: Option<NodeIdUsize>,
-        next_sibling: Option<NodeIdUsize>,
+        parent: Id,
+        prev_sibling: Option<Id>,
+        next_sibling: Option<Id>,
     ) -> Result<(), StructureError> {
         // Detach the nodes.
         {

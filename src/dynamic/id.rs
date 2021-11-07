@@ -102,15 +102,6 @@ impl NodeIdUsize {
     pub(crate) const fn to_usize(self) -> usize {
         self.0.get()
     }
-
-    /// Creates a node ID from the raw `usize` value.
-    ///
-    /// Returns `None` if the given value is too large.
-    #[inline]
-    #[must_use]
-    pub(crate) fn from_usize(v: usize) -> Option<Self> {
-        NonMaxUsize::new(v).map(Self)
-    }
 }
 
 // Prevent `{:#?}` from printing the value in redundant 3 lines.
