@@ -6,18 +6,10 @@ use core::hash::Hash;
 use crate::nonmax::NonMaxUsize;
 
 /// A trait for internal node ID types.
-pub trait InternalNodeId: Copy + Eq + Hash + fmt::Debug + private::Sealed {
-    /// Returns the raw `usize` value.
-    ///
-    /// Note that this is not intended to be implemented on downstream crates.
-    fn to_usize(self) -> usize;
-    /// Creates a node ID from the raw `usize` value.
-    ///
-    /// This should return `None` when the node ID creation fails.
-    ///
-    /// Note that this is not intended to be implemented on downstream crates.
-    fn from_usize(v: usize) -> Option<Self>;
-}
+///
+/// This trait is implemented for limited types in `treena` crate.
+/// Downstream users cannot implement this to other types.
+pub trait InternalNodeId: Copy + Eq + Hash + fmt::Debug + private::SealedInternalNodeId {}
 
 /// A trait for node ID types.
 pub trait NodeId: Copy + Eq + Hash + fmt::Debug {
@@ -111,7 +103,9 @@ impl fmt::Debug for NodeIdUsize {
     }
 }
 
-impl InternalNodeId for NodeIdUsize {
+impl InternalNodeId for NodeIdUsize {}
+
+impl private::SealedInternalNodeId for NodeIdUsize {
     #[inline]
     #[must_use]
     fn to_usize(self) -> usize {
@@ -125,13 +119,26 @@ impl InternalNodeId for NodeIdUsize {
     }
 }
 
-impl private::Sealed for NodeIdUsize {}
-
-/// Private module to provide [`Sealed`][`private::Sealed`] trait.
+/// Private module to provide [`Sealed`][`private::SealedInternalNodeId`] trait.
 mod private {
-    /// Trait to prohibit [`InternalNodeId`][`super::InternalNodeId`] trait
-    /// implementation by downstream crates.
-    pub trait Sealed {}
+    /// A trait to seal [`InternalNodeId`][`super::InternalNodeId`] and
+    /// provide functions only for internal use.
+    ///
+    /// This trait cannot be `use`d by downstream crates, so it is safe to put
+    /// internal-use-only functions here.
+    /// Hiding these function makes it impossible for users to create internal
+    /// node ID from arbitrary values safely. This makes it easy to change
+    /// internal structure of node IDs in non-breaking way.
+    pub trait SealedInternalNodeId: Sized {
+        /// Returns the raw `usize` value.
+        #[must_use]
+        fn to_usize(self) -> usize;
+        /// Creates a node ID from the raw `usize` value.
+        ///
+        /// This should return `None` when the node ID creation fails.
+        #[must_use]
+        fn from_usize(v: usize) -> Option<Self>;
+    }
 }
 
 #[cfg(test)]
