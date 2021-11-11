@@ -35,7 +35,7 @@ impl<T: InternalNodeId> NodeId for T {
     }
 }
 
-/// Implements `NodeId` trait for the given node ID type.
+/// Implements [`dynamic::NodeId`][`NodeId`] trait for the given node ID type.
 ///
 /// # Examples
 ///
