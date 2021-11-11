@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.0.3]
+
 * Bump minimum supported rust version to 1.56.
 * Now `Forest` and related types takes a node ID type as a type parameter.
     + You can implement custom ID types.
@@ -49,6 +51,7 @@
 
 Initial release.
 
-[Unreleased]: <https://gitlab.com/lo48576/treena/-/compare/v0.0.2...develop>
+[Unreleased]: <https://gitlab.com/lo48576/treena/-/compare/v0.0.3...develop>
+[0.0.3]: <https://gitlab.com/lo48576/treena/-/tags/v0.0.3>
 [0.0.2]: <https://gitlab.com/lo48576/treena/-/tags/v0.0.2>
 [0.0.1]: <https://gitlab.com/lo48576/treena/-/tags/v0.0.1>
