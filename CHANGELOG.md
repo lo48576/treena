@@ -5,6 +5,7 @@
 * Bump minimum supported rust version to 1.56.
 * Now `Forest` and related types takes a node ID type as a type parameter.
     + You can implement custom ID types.
+* `NodeIdU{8,16,32,64}` types are added.
 
 ### Changed (breaking)
 
@@ -14,6 +15,12 @@
     + A forest with the ID type `MyId` and the node data `MyData` is now
       `Forest<MyId, MyData>` type.
     + About node ID types and how to implement it, see the documentation for `dynamic` module.
+
+### Added
+
+* `NodeIdU{8,16,32,64}` types are added.
+    + They are `u{8,16,32,64}` version of `NodeIdUsize`, and can be used both as
+      internal node ID types and normal node ID types.
 
 ## [0.0.2]
 
