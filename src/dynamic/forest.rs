@@ -1882,3 +1882,87 @@ impl fmt::Display for StructureError {
 
 #[cfg(feature = "std")]
 impl std::error::Error for StructureError {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Ensures that functions defined in functions are monomorphized
+    /// independently without considering outer function's type parameters.
+    ///
+    /// This is in fact testing compiler's behavior, rather than the
+    /// implementation of this crate.
+    ///
+    /// This fact is useful to reduce monomorphization.
+    ///
+    /// `Forest<Id, T>` is a pair of `Hierarchy<Id::Internal>` and `Vec<T>`, and
+    /// most of the operations provided from `Forest<Id, T>` actually depends on
+    /// `T` and `Id::Internal`, not `Id`.
+    /// `Id` is only necessary to make parameter types and return types
+    /// different, and the internal logic is almost identical when
+    /// `Id::Internal` is the same.
+    ///
+    /// For example, internal implementantion of `Forest::<Id0, T>::remove` and
+    /// `Forest::<Id1, T>::remove` can be almost the same when `Id0::Internal`
+    /// and `Id1::Internal` are the same type, except the part that converts
+    /// `Id0` or `Id1` into `_::Internal` type value.
+    #[test]
+    fn ensure_inner_function_is_monomorphized() {
+        use core::any::Any;
+
+        use crate::dynamic::{InternalNodeId, NodeIdUsize};
+        use crate::impl_dynamic_node_id;
+
+        // Dummy struct mimicking `Forest<Id: NdoeId, T>`.
+        struct MyContainer<Id: NodeId, T> {
+            _ids: Vec<Id::Internal>,
+            _values: Vec<T>,
+        }
+        impl<Id: NodeId, T> Default for MyContainer<Id, T> {
+            fn default() -> Self {
+                Self {
+                    _ids: Default::default(),
+                    _values: Default::default(),
+                }
+            }
+        }
+
+        impl<Id: NodeId, T> MyContainer<Id, T> {
+            fn new() -> Self {
+                Self::default()
+            }
+
+            fn inner_fn_addr(&self) -> fn(Id::Internal) -> () {
+                fn inner<I: InternalNodeId>(_: I) {}
+
+                inner::<Id::Internal> as fn(Id::Internal) -> ()
+            }
+        }
+
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+        struct MyId0(NodeIdUsize);
+        impl_dynamic_node_id!(MyId0, NodeIdUsize, 0);
+
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+        struct MyId1(NodeIdUsize);
+        impl_dynamic_node_id!(MyId1, NodeIdUsize, 0);
+
+        let container0 = MyContainer::<MyId0, usize>::new();
+        let container1 = MyContainer::<MyId1, usize>::new();
+
+        let outer_addr0 = MyContainer::<MyId0, usize>::inner_fn_addr as fn(_) -> _;
+        let outer_addr1 = MyContainer::<MyId1, usize>::inner_fn_addr as fn(_) -> _;
+
+        assert_ne!(
+            outer_addr0.type_id(),
+            outer_addr1.type_id(),
+            "outer functions must have different types"
+        );
+        assert_eq!(
+            container0.inner_fn_addr(),
+            container1.inner_fn_addr(),
+            "inner functions must have the same address \
+             while the outer functions are different"
+        );
+    }
+}
