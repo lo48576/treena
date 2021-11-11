@@ -7,7 +7,7 @@ use crate::dynamic::hierarchy::traverse::{
     AllocatingBreadthFirstTraverser, AncestorsTraverser, BreadthFirstTraverser,
     DepthFirstTraverser, DftEvent as DftEventSrc, ShallowDepthFirstTraverser, SiblingsTraverser,
 };
-use crate::dynamic::{NodeId, NodeIdUsize};
+use crate::dynamic::NodeId;
 
 /// Depth-first traverseal event.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -49,7 +49,7 @@ pub struct DepthFirstTraverse<'a, Id: NodeId, T> {
     /// Forest.
     forest: &'a Forest<Id, T>,
     /// Traverser.
-    traverser: DepthFirstTraverser<NodeIdUsize>,
+    traverser: DepthFirstTraverser<Id::Internal>,
 }
 
 impl<'a, Id: NodeId, T> DepthFirstTraverse<'a, Id, T> {
@@ -59,7 +59,10 @@ impl<'a, Id: NodeId, T> DepthFirstTraverse<'a, Id, T> {
     pub(super) fn with_toplevel(node: &Node<'a, Id, T>) -> Self {
         Self {
             forest: node.forest(),
-            traverser: DepthFirstTraverser::with_toplevel(node.id(), node.hierarchy()),
+            traverser: DepthFirstTraverser::with_toplevel(
+                node.id().to_internal(),
+                node.hierarchy(),
+            ),
         }
     }
 
@@ -69,7 +72,7 @@ impl<'a, Id: NodeId, T> DepthFirstTraverse<'a, Id, T> {
         let ev = self.traverser.peek()?;
         Some(DftEvent::from_hierarchy_dft_event(ev, |id| {
             self.forest
-                .node(id)
+                .node(Id::from_internal(id))
                 .expect("[consistency] the node must be the part of the tree")
         }))
     }
@@ -80,7 +83,7 @@ impl<'a, Id: NodeId, T> DepthFirstTraverse<'a, Id, T> {
         let ev = self.traverser.peek_back()?;
         Some(DftEvent::from_hierarchy_dft_event(ev, |id| {
             self.forest
-                .node(id)
+                .node(Id::from_internal(id))
                 .expect("[consistency] the node must be the part of the tree")
         }))
     }
@@ -93,7 +96,7 @@ impl<'a, Id: NodeId, T> Iterator for DepthFirstTraverse<'a, Id, T> {
         let ev = self.traverser.next(&self.forest.hierarchy)?;
         Some(DftEvent::from_hierarchy_dft_event(ev, |id| {
             self.forest
-                .node(id)
+                .node(Id::from_internal(id))
                 .expect("[consistency] the node must be the part of the tree")
         }))
     }
@@ -104,7 +107,7 @@ impl<'a, Id: NodeId, T> DoubleEndedIterator for DepthFirstTraverse<'a, Id, T> {
         let ev = self.traverser.next_back(&self.forest.hierarchy)?;
         Some(DftEvent::from_hierarchy_dft_event(ev, |id| {
             self.forest
-                .node(id)
+                .node(Id::from_internal(id))
                 .expect("[consistency] the node must be the part of the tree")
         }))
     }
@@ -121,7 +124,7 @@ pub struct ShallowDepthFirstTraverse<'a, Id: NodeId, T> {
     /// Forest.
     forest: &'a Forest<Id, T>,
     /// Traverser.
-    traverser: ShallowDepthFirstTraverser<NodeIdUsize>,
+    traverser: ShallowDepthFirstTraverser<Id::Internal>,
 }
 
 impl<'a, Id: NodeId, T> ShallowDepthFirstTraverse<'a, Id, T> {
@@ -135,7 +138,7 @@ impl<'a, Id: NodeId, T> ShallowDepthFirstTraverse<'a, Id, T> {
         Self {
             forest: node.forest(),
             traverser: ShallowDepthFirstTraverser::with_toplevel_and_max_depth(
-                node.id(),
+                node.id().to_internal(),
                 node.hierarchy(),
                 max_depth,
             ),
@@ -156,7 +159,7 @@ impl<'a, Id: NodeId, T> ShallowDepthFirstTraverse<'a, Id, T> {
         Some((
             DftEvent::from_hierarchy_dft_event(ev, |id| {
                 self.forest
-                    .node(id)
+                    .node(Id::from_internal(id))
                     .expect("[consistency] the node must be the part of the tree")
             }),
             depth,
@@ -170,7 +173,7 @@ impl<'a, Id: NodeId, T> ShallowDepthFirstTraverse<'a, Id, T> {
         Some((
             DftEvent::from_hierarchy_dft_event(ev, |id| {
                 self.forest
-                    .node(id)
+                    .node(Id::from_internal(id))
                     .expect("[consistency] the node must be the part of the tree")
             }),
             depth,
@@ -186,7 +189,7 @@ impl<'a, Id: NodeId, T> Iterator for ShallowDepthFirstTraverse<'a, Id, T> {
         Some((
             DftEvent::from_hierarchy_dft_event(ev, |id| {
                 self.forest
-                    .node(id)
+                    .node(Id::from_internal(id))
                     .expect("[consistency] the node must be the part of the tree")
             }),
             depth,
@@ -200,7 +203,7 @@ impl<'a, Id: NodeId, T> DoubleEndedIterator for ShallowDepthFirstTraverse<'a, Id
         Some((
             DftEvent::from_hierarchy_dft_event(ev, |id| {
                 self.forest
-                    .node(id)
+                    .node(Id::from_internal(id))
                     .expect("[consistency] the node must be the part of the tree")
             }),
             depth,
@@ -216,7 +219,7 @@ pub struct Ancestors<'a, Id: NodeId, T> {
     /// Forest.
     forest: &'a Forest<Id, T>,
     /// Traverser.
-    traverser: AncestorsTraverser<NodeIdUsize>,
+    traverser: AncestorsTraverser<Id::Internal>,
 }
 
 impl<'a, Id: NodeId, T> Ancestors<'a, Id, T> {
@@ -226,7 +229,7 @@ impl<'a, Id: NodeId, T> Ancestors<'a, Id, T> {
     pub(super) fn with_start(node: &Node<'a, Id, T>) -> Self {
         Self {
             forest: node.forest(),
-            traverser: AncestorsTraverser::with_start(node.id(), node.hierarchy()),
+            traverser: AncestorsTraverser::with_start(node.id().to_internal(), node.hierarchy()),
         }
     }
 
@@ -236,7 +239,7 @@ impl<'a, Id: NodeId, T> Ancestors<'a, Id, T> {
         let id = self.traverser.peek()?;
         let node = self
             .forest
-            .node(id)
+            .node(Id::from_internal(id))
             .expect("[consistency] the node must be the part of the tree");
         Some(node)
     }
@@ -249,7 +252,7 @@ impl<'a, Id: NodeId, T> Iterator for Ancestors<'a, Id, T> {
         let id = self.traverser.next(&self.forest.hierarchy)?;
         let node = self
             .forest
-            .node(id)
+            .node(Id::from_internal(id))
             .expect("[consistency] the node must be the part of the tree");
         Some(node)
     }
@@ -263,7 +266,7 @@ pub struct Siblings<'a, Id: NodeId, T> {
     /// Forest.
     forest: &'a Forest<Id, T>,
     /// Traverser.
-    traverser: SiblingsTraverser<NodeIdUsize>,
+    traverser: SiblingsTraverser<Id::Internal>,
 }
 
 impl<'a, Id: NodeId, T> Siblings<'a, Id, T> {
@@ -273,7 +276,10 @@ impl<'a, Id: NodeId, T> Siblings<'a, Id, T> {
     pub(super) fn with_parent(parent: &Node<'a, Id, T>) -> Self {
         Self {
             forest: parent.forest(),
-            traverser: SiblingsTraverser::with_parent(parent.id(), parent.hierarchy()),
+            traverser: SiblingsTraverser::with_parent(
+                parent.id().to_internal(),
+                parent.hierarchy(),
+            ),
         }
     }
 
@@ -283,7 +289,10 @@ impl<'a, Id: NodeId, T> Siblings<'a, Id, T> {
     pub(super) fn with_first_sibling(first: &Node<'a, Id, T>) -> Self {
         Self {
             forest: first.forest(),
-            traverser: SiblingsTraverser::with_first_sibling(first.id(), first.hierarchy()),
+            traverser: SiblingsTraverser::with_first_sibling(
+                first.id().to_internal(),
+                first.hierarchy(),
+            ),
         }
     }
 
@@ -293,7 +302,10 @@ impl<'a, Id: NodeId, T> Siblings<'a, Id, T> {
     pub(super) fn with_last_sibling(last: &Node<'a, Id, T>) -> Self {
         Self {
             forest: last.forest(),
-            traverser: SiblingsTraverser::with_last_sibling(last.id(), last.hierarchy()),
+            traverser: SiblingsTraverser::with_last_sibling(
+                last.id().to_internal(),
+                last.hierarchy(),
+            ),
         }
     }
 
@@ -303,7 +315,7 @@ impl<'a, Id: NodeId, T> Siblings<'a, Id, T> {
         let id = self.traverser.peek()?;
         let node = self
             .forest
-            .node(id)
+            .node(Id::from_internal(id))
             .expect("[consistency] the node must be the part of the tree");
         Some(node)
     }
@@ -314,7 +326,7 @@ impl<'a, Id: NodeId, T> Siblings<'a, Id, T> {
         let id = self.traverser.peek_back()?;
         let node = self
             .forest
-            .node(id)
+            .node(Id::from_internal(id))
             .expect("[consistency] the node must be the part of the tree");
         Some(node)
     }
@@ -327,7 +339,7 @@ impl<'a, Id: NodeId, T> Iterator for Siblings<'a, Id, T> {
         let id = self.traverser.next(&self.forest.hierarchy)?;
         let node = self
             .forest
-            .node(id)
+            .node(Id::from_internal(id))
             .expect("[consistency] the node must be the part of the tree");
         Some(node)
     }
@@ -338,7 +350,7 @@ impl<'a, Id: NodeId, T> DoubleEndedIterator for Siblings<'a, Id, T> {
         let id = self.traverser.next_back(&self.forest.hierarchy)?;
         let node = self
             .forest
-            .node(id)
+            .node(Id::from_internal(id))
             .expect("[consistency] the node must be the part of the tree");
         Some(node)
     }
@@ -357,7 +369,7 @@ pub struct BreadthFirstTraverse<'a, Id: NodeId, T> {
     /// Forest.
     forest: &'a Forest<Id, T>,
     /// Traverser.
-    traverser: BreadthFirstTraverser<NodeIdUsize>,
+    traverser: BreadthFirstTraverser<Id::Internal>,
 }
 
 impl<'a, Id: NodeId, T> BreadthFirstTraverse<'a, Id, T> {
@@ -367,7 +379,10 @@ impl<'a, Id: NodeId, T> BreadthFirstTraverse<'a, Id, T> {
     pub(super) fn with_toplevel(node: &Node<'a, Id, T>) -> Self {
         Self {
             forest: node.forest(),
-            traverser: BreadthFirstTraverser::with_toplevel(node.id(), node.hierarchy()),
+            traverser: BreadthFirstTraverser::with_toplevel(
+                node.id().to_internal(),
+                node.hierarchy(),
+            ),
         }
     }
 }
@@ -379,7 +394,7 @@ impl<'a, Id: NodeId, T> Iterator for BreadthFirstTraverse<'a, Id, T> {
         let (id, depth) = self.traverser.next(&self.forest.hierarchy)?;
         let node = self
             .forest
-            .node(id)
+            .node(Id::from_internal(id))
             .expect("[consistency] the node must be the part of the tree");
 
         Some((node, depth))
@@ -396,7 +411,7 @@ pub struct AllocatingBreadthFirstTraverse<'a, Id: NodeId, T> {
     /// Forest.
     forest: &'a Forest<Id, T>,
     /// Traverser.
-    traverser: AllocatingBreadthFirstTraverser<NodeIdUsize>,
+    traverser: AllocatingBreadthFirstTraverser<Id::Internal>,
 }
 
 impl<'a, Id: NodeId, T> AllocatingBreadthFirstTraverse<'a, Id, T> {
@@ -406,7 +421,10 @@ impl<'a, Id: NodeId, T> AllocatingBreadthFirstTraverse<'a, Id, T> {
     pub(super) fn with_toplevel(node: &Node<'a, Id, T>) -> Self {
         Self {
             forest: node.forest(),
-            traverser: AllocatingBreadthFirstTraverser::with_toplevel(node.id(), node.hierarchy()),
+            traverser: AllocatingBreadthFirstTraverser::with_toplevel(
+                node.id().to_internal(),
+                node.hierarchy(),
+            ),
         }
     }
 
@@ -416,7 +434,7 @@ impl<'a, Id: NodeId, T> AllocatingBreadthFirstTraverse<'a, Id, T> {
         let (id, depth) = self.traverser.peek()?;
         let node = self
             .forest
-            .node(id)
+            .node(Id::from_internal(id))
             .expect("[consistency] the node must be the part of the tree");
 
         Some((node, depth))
@@ -430,7 +448,7 @@ impl<'a, Id: NodeId, T> Iterator for AllocatingBreadthFirstTraverse<'a, Id, T> {
         let (id, depth) = self.traverser.next(&self.forest.hierarchy)?;
         let node = self
             .forest
-            .node(id)
+            .node(Id::from_internal(id))
             .expect("[consistency] the node must be the part of the tree");
 
         Some((node, depth))

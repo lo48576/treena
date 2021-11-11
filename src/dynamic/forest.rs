@@ -12,7 +12,7 @@ use alloc::vec::Vec;
 
 use crate::dynamic::hierarchy::traverse::{DftEvent, SafeModeDepthFirstTraverser};
 use crate::dynamic::hierarchy::{Hierarchy, Neighbors};
-use crate::dynamic::{InsertAs, NodeId, NodeIdUsize};
+use crate::dynamic::{InsertAs, NodeId, NodeIdExt};
 
 pub use self::builder::TreeBuilder;
 #[cfg(any(feature = "debug-print"))]
@@ -114,7 +114,7 @@ pub use self::node::{Node, NodeMut};
 #[derive(Debug, Clone)]
 pub struct Forest<Id: NodeId, T> {
     /// Hierarchy.
-    hierarchy: Hierarchy<NodeIdUsize>,
+    hierarchy: Hierarchy<Id::Internal>,
     /// Data.
     ///
     /// `None` is used for removed nodes.
@@ -123,8 +123,6 @@ pub struct Forest<Id: NodeId, T> {
     // elements would be error prone and unsafe. To avoid bugs from `unsafe`
     // codes, use `Option<T>` here.
     data: Vec<Option<T>>,
-    /// Dummy.
-    _dummy: core::marker::PhantomData<Id>,
 }
 
 /// Forest creation.
@@ -152,7 +150,7 @@ impl<Id: NodeId, T> Forest<Id, T> {
 impl<Id: NodeId, T> Forest<Id, T> {
     /// Returns true if the node exists and is not yet removed.
     #[must_use]
-    fn is_alive(&self, id: NodeIdUsize) -> bool {
+    fn is_alive(&self, id: Id) -> bool {
         self.data
             .get(id.to_usize())
             .map_or(false, |entry| entry.is_some())
@@ -180,7 +178,7 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// ```
     #[inline]
     #[must_use]
-    pub fn node(&self, id: NodeIdUsize) -> Option<Node<'_, Id, T>> {
+    pub fn node(&self, id: Id) -> Option<Node<'_, Id, T>> {
         Node::new(self, id)
     }
 
@@ -216,7 +214,7 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// ```
     #[inline]
     #[must_use]
-    pub fn node_mut(&mut self, id: NodeIdUsize) -> Option<NodeMut<'_, Id, T>> {
+    pub fn node_mut(&mut self, id: Id) -> Option<NodeMut<'_, Id, T>> {
         NodeMut::new(self, id)
     }
 
@@ -234,7 +232,7 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// ```
     #[inline]
     #[must_use]
-    pub fn data(&self, id: NodeIdUsize) -> Option<&T> {
+    pub fn data(&self, id: Id) -> Option<&T> {
         self.data
             .get(id.to_usize())
             .and_then(|entry| entry.as_ref())
@@ -257,7 +255,7 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// ```
     #[inline]
     #[must_use]
-    pub fn data_mut(&mut self, id: NodeIdUsize) -> Option<&mut T> {
+    pub fn data_mut(&mut self, id: Id) -> Option<&mut T> {
         self.data
             .get_mut(id.to_usize())
             .and_then(|entry| entry.as_mut())
@@ -266,8 +264,8 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// Returns a reference to the neighbors data associated to the node.
     #[inline]
     #[must_use]
-    fn neighbors(&self, id: NodeIdUsize) -> Option<&Neighbors<NodeIdUsize>> {
-        self.hierarchy.neighbors(id)
+    fn neighbors(&self, id: Id) -> Option<&Neighbors<Id::Internal>> {
+        self.hierarchy.neighbors(id.to_internal())
     }
 }
 
@@ -331,7 +329,7 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// );
     /// ```
     #[must_use = "newly created node cannot be accessed without the returned node ID"]
-    pub fn create_root(&mut self, data: T) -> NodeIdUsize {
+    pub fn create_root(&mut self, data: T) -> Id {
         let new_id = self.hierarchy.create_root();
         assert_eq!(
             self.data.len(),
@@ -340,7 +338,7 @@ impl<Id: NodeId, T> Forest<Id, T> {
         );
         self.data.push(Some(data));
 
-        new_id
+        Id::from_internal(new_id)
     }
 
     /// Creates a node and inserts it to the target position.
@@ -354,7 +352,7 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// Panics if the node (the anchor of the destination) is not alive.
     #[inline]
     #[must_use = "newly created node cannot be accessed without the returned node ID"]
-    pub fn create_insert(&mut self, data: T, dest: InsertAs<NodeIdUsize>) -> NodeIdUsize {
+    pub fn create_insert(&mut self, data: T, dest: InsertAs<Id>) -> Id {
         let new_id = self.create_root(data);
         self.insert(new_id, dest)
             .expect("[consistency] newly created node is independent from the destination");
@@ -576,12 +574,9 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// # }
     /// ```
     #[inline]
-    pub fn insert(
-        &mut self,
-        node: NodeIdUsize,
-        dest: InsertAs<NodeIdUsize>,
-    ) -> Result<(), StructureError> {
-        self.hierarchy.insert(node, dest)
+    pub fn insert(&mut self, node: Id, dest: InsertAs<Id>) -> Result<(), StructureError> {
+        self.hierarchy
+            .insert(node.to_internal(), dest.map(Id::to_internal))
     }
 }
 
@@ -642,8 +637,8 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// # }
     /// ```
     #[inline]
-    pub fn detach(&mut self, node: NodeIdUsize) {
-        self.hierarchy.detach(node);
+    pub fn detach(&mut self, node: Id) {
+        self.hierarchy.detach(node.to_internal());
     }
 
     /// Detaches the node from neighbors and make it orphan root.
@@ -705,8 +700,8 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// # }
     /// ```
     #[inline]
-    pub fn detach_single(&mut self, node: NodeIdUsize) -> Result<(), StructureError> {
-        self.hierarchy.detach_single(node)
+    pub fn detach_single(&mut self, node: Id) -> Result<(), StructureError> {
+        self.hierarchy.detach_single(node.to_internal())
     }
 
     /// Removes the subtree from the forest.
@@ -784,17 +779,17 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// assert_eq!(removed_data, &["1-1-0", "1-1-1", "1-1-2", "1-1"]);
     /// # }
     /// ```
-    pub fn remove_hooked_panic_safe<F: FnMut(T)>(&mut self, node: NodeIdUsize, mut f: F) {
+    pub fn remove_hooked_panic_safe<F: FnMut(T)>(&mut self, node: Id, mut f: F) {
         if !self.is_alive(node) {
             return;
         }
         self.detach(node);
 
-        let mut traverser = SafeModeDepthFirstTraverser::new(node, &self.hierarchy);
+        let mut traverser = SafeModeDepthFirstTraverser::new(node.to_internal(), &self.hierarchy);
         while let Some(ev) = traverser.next(&self.hierarchy) {
             let id = match ev {
                 DftEvent::Open(_) => continue,
-                DftEvent::Close(id) => id,
+                DftEvent::Close(id) => Id::from_internal(id),
             };
 
             // Detach the leaf node.
@@ -808,7 +803,7 @@ impl<Id: NodeId, T> Forest<Id, T> {
             self.detach(id);
             let nbs = self
                 .hierarchy
-                .neighbors_mut(id)
+                .neighbors_mut(id.to_internal())
                 .expect("[consistency] the current node must be alive here");
             debug_assert!(
                 nbs.is_alone(),
@@ -891,13 +886,13 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// assert_eq!(removed_data, &["1-1-0", "1-1-1", "1-1-2", "1-1"]);
     /// # }
     /// ```
-    pub fn remove_hooked<F: FnMut(T)>(&mut self, node: NodeIdUsize, mut f: F) {
+    pub fn remove_hooked<F: FnMut(T)>(&mut self, node: Id, mut f: F) {
         if !self.is_alive(node) {
             return;
         }
         self.detach(node);
 
-        let mut traverser = SafeModeDepthFirstTraverser::new(node, &self.hierarchy);
+        let mut traverser = SafeModeDepthFirstTraverser::new(node.to_internal(), &self.hierarchy);
         while let Some(ev) = traverser.next(&self.hierarchy) {
             let id = match ev {
                 DftEvent::Open(_) => continue,
@@ -981,7 +976,7 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// # }
     /// ```
     #[inline]
-    pub fn remove(&mut self, node: NodeIdUsize) {
+    pub fn remove(&mut self, node: Id) {
         self.remove_hooked(node, drop);
     }
 }
@@ -1024,10 +1019,7 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// ```
     #[inline]
     #[must_use]
-    pub fn depth_first_traverse(
-        &self,
-        node: NodeIdUsize,
-    ) -> traverse::DepthFirstTraverse<'_, Id, T> {
+    pub fn depth_first_traverse(&self, node: Id) -> traverse::DepthFirstTraverse<'_, Id, T> {
         self.node(node)
             .expect("[precondition] node must be alive")
             .depth_first_traverse()
@@ -1120,7 +1112,7 @@ impl<Id: NodeId, T> Forest<Id, T> {
     #[must_use]
     pub fn shallow_depth_first_traverse(
         &self,
-        node: NodeIdUsize,
+        node: Id,
         max_depth: Option<usize>,
     ) -> traverse::ShallowDepthFirstTraverse<'_, Id, T> {
         self.node(node)
@@ -1196,10 +1188,7 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// ```
     #[inline]
     #[must_use]
-    pub fn breadth_first_traverse(
-        &self,
-        node: NodeIdUsize,
-    ) -> traverse::BreadthFirstTraverse<'_, Id, T> {
+    pub fn breadth_first_traverse(&self, node: Id) -> traverse::BreadthFirstTraverse<'_, Id, T> {
         self.node(node)
             .expect("[precondition] node must be alive")
             .breadth_first_traverse()
@@ -1272,7 +1261,7 @@ impl<Id: NodeId, T> Forest<Id, T> {
     #[must_use]
     pub fn allocating_breadth_first_traverse(
         &self,
-        node: NodeIdUsize,
+        node: Id,
     ) -> traverse::AllocatingBreadthFirstTraverse<'_, Id, T> {
         self.node(node)
             .expect("[precondition] node must be alive")
@@ -1305,7 +1294,7 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// ```
     #[inline]
     #[must_use]
-    pub fn ancestors(&self, node: NodeIdUsize) -> traverse::Ancestors<'_, Id, T> {
+    pub fn ancestors(&self, node: Id) -> traverse::Ancestors<'_, Id, T> {
         self.node(node)
             .expect("[precondition] node must be alive")
             .ancestors()
@@ -1333,7 +1322,7 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// ```
     #[inline]
     #[must_use]
-    pub fn ancestors_or_self(&self, node: NodeIdUsize) -> traverse::Ancestors<'_, Id, T> {
+    pub fn ancestors_or_self(&self, node: Id) -> traverse::Ancestors<'_, Id, T> {
         self.node(node)
             .expect("[precondition] node must be alive")
             .ancestors_or_self()
@@ -1363,7 +1352,7 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// ```
     #[inline]
     #[must_use]
-    pub fn children(&self, node: NodeIdUsize) -> traverse::Siblings<'_, Id, T> {
+    pub fn children(&self, node: Id) -> traverse::Siblings<'_, Id, T> {
         self.node(node)
             .expect("[precondition] node must be alive")
             .children()
@@ -1392,7 +1381,7 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// ```
     #[inline]
     #[must_use]
-    pub fn following_siblings(&self, node: NodeIdUsize) -> traverse::Siblings<'_, Id, T> {
+    pub fn following_siblings(&self, node: Id) -> traverse::Siblings<'_, Id, T> {
         self.node(node)
             .expect("[precondition] node must be alive")
             .following_siblings()
@@ -1421,7 +1410,7 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// ```
     #[inline]
     #[must_use]
-    pub fn following_siblings_or_self(&self, node: NodeIdUsize) -> traverse::Siblings<'_, Id, T> {
+    pub fn following_siblings_or_self(&self, node: Id) -> traverse::Siblings<'_, Id, T> {
         self.node(node)
             .expect("[precondition] node must be alive")
             .following_siblings_or_self()
@@ -1463,7 +1452,7 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// ```
     #[inline]
     #[must_use]
-    pub fn preceding_siblings(&self, node: NodeIdUsize) -> traverse::Siblings<'_, Id, T> {
+    pub fn preceding_siblings(&self, node: Id) -> traverse::Siblings<'_, Id, T> {
         self.node(node)
             .expect("[precondition] node must be alive")
             .preceding_siblings()
@@ -1505,7 +1494,7 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// ```
     #[inline]
     #[must_use]
-    pub fn preceding_siblings_or_self(&self, node: NodeIdUsize) -> traverse::Siblings<'_, Id, T> {
+    pub fn preceding_siblings_or_self(&self, node: Id) -> traverse::Siblings<'_, Id, T> {
         self.node(node)
             .expect("[precondition] node must be alive")
             .preceding_siblings_or_self()
@@ -1563,7 +1552,7 @@ impl<Id: NodeId, T: Clone> Forest<Id, T> {
     /// # }
     /// ```
     #[must_use = "newly created node cannot be accessed without the returned node ID"]
-    pub fn clone_local_tree(&mut self, src_id: NodeIdUsize) -> NodeIdUsize {
+    pub fn clone_local_tree(&mut self, src_id: Id) -> Id {
         self.clone_local_tree_with_id_mapping(src_id, |_, _| ())
     }
 
@@ -1621,7 +1610,7 @@ impl<Id: NodeId, T: Clone> Forest<Id, T> {
     /// # }
     /// ```
     #[must_use = "newly created node cannot be accessed without the returned node ID"]
-    pub fn clone_foreign_tree(&mut self, src_root: Node<'_, Id, T>) -> NodeIdUsize {
+    pub fn clone_foreign_tree(&mut self, src_root: Node<'_, Id, T>) -> Id {
         self.clone_foreign_tree_with_id_mapping(src_root, |_, _| ())
     }
 
@@ -1683,13 +1672,9 @@ impl<Id: NodeId, T: Clone> Forest<Id, T> {
     /// # }
     /// ```
     #[must_use = "newly created node cannot be accessed without the returned node ID"]
-    pub fn clone_local_tree_with_id_mapping<F>(
-        &mut self,
-        src_id: NodeIdUsize,
-        mut add_mapping: F,
-    ) -> NodeIdUsize
+    pub fn clone_local_tree_with_id_mapping<F>(&mut self, src_id: Id, mut add_mapping: F) -> Id
     where
-        F: FnMut(NodeIdUsize, NodeIdUsize),
+        F: FnMut(Id, Id),
     {
         let root_data = self
             .data(src_id)
@@ -1698,7 +1683,7 @@ impl<Id: NodeId, T: Clone> Forest<Id, T> {
         let root_id = self.create_root(root_data);
         let mut current_dest = root_id;
         add_mapping(src_id, current_dest);
-        let mut traverser = SafeModeDepthFirstTraverser::new(src_id, &self.hierarchy);
+        let mut traverser = SafeModeDepthFirstTraverser::new(src_id.to_internal(), &self.hierarchy);
 
         // Skip the open event of the root node.
         let _ = traverser.next(&self.hierarchy);
@@ -1706,6 +1691,7 @@ impl<Id: NodeId, T: Clone> Forest<Id, T> {
         while let Some(ev) = traverser.next(&self.hierarchy) {
             match ev {
                 DftEvent::Open(src_id) => {
+                    let src_id = Id::from_internal(src_id);
                     let data = self
                         .data(src_id)
                         .expect("[consistency] the node being traversed must be alive")
@@ -1806,9 +1792,9 @@ impl<Id: NodeId, T: Clone> Forest<Id, T> {
         &mut self,
         src_root: Node<'_, Id, T>,
         mut add_mapping: F,
-    ) -> NodeIdUsize
+    ) -> Id
     where
-        F: FnMut(NodeIdUsize, NodeIdUsize),
+        F: FnMut(Id, Id),
     {
         use crate::dynamic::forest::traverse::DftEvent;
 
@@ -1855,7 +1841,7 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// This requires `debug-print` feature to be enabled.
     #[cfg(feature = "debug-print")]
     #[cfg_attr(feature = "docsrs", doc(cfg(feature = "debug-print")))]
-    pub fn debug_print(&self, id: NodeIdUsize) -> debug_print::DebugPrint<'_, Id, T> {
+    pub fn debug_print(&self, id: Id) -> debug_print::DebugPrint<'_, Id, T> {
         let node = self
             .node(id)
             .expect("[precondition] the node must be alive");
@@ -1868,7 +1854,6 @@ impl<Id: NodeId, T> Default for Forest<Id, T> {
         Self {
             hierarchy: Default::default(),
             data: Default::default(),
-            _dummy: Default::default(),
         }
     }
 }

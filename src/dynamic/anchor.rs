@@ -41,3 +41,18 @@ pub enum InsertAs<Id> {
     /// As the next sibling.
     NextSiblingOf(Id),
 }
+
+impl<Id> InsertAs<Id> {
+    /// Converts the ID type.
+    pub(super) fn map<U, F>(self, f: F) -> InsertAs<U>
+    where
+        F: FnOnce(Id) -> U,
+    {
+        match self {
+            Self::FirstChildOf(id) => InsertAs::FirstChildOf(f(id)),
+            Self::LastChildOf(id) => InsertAs::LastChildOf(f(id)),
+            Self::PreviousSiblingOf(id) => InsertAs::PreviousSiblingOf(f(id)),
+            Self::NextSiblingOf(id) => InsertAs::NextSiblingOf(f(id)),
+        }
+    }
+}

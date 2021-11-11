@@ -75,6 +75,21 @@ macro_rules! impl_dynamic_node_id {
     };
 }
 
+/// An extention trait for [`NodeId`] to expose
+/// [`SealedInternalNodeId`][`private::SealedInternalNodeId`] methods.
+pub(super) trait NodeIdExt: Sized {
+    /// Returns the raw `usize` value.
+    #[must_use]
+    fn to_usize(self) -> usize;
+}
+
+impl<Id: NodeId> NodeIdExt for Id {
+    #[inline]
+    fn to_usize(self) -> usize {
+        private::SealedInternalNodeId::to_usize(self.to_internal())
+    }
+}
+
 /// Node ID.
 ///
 /// The ordering (`PartialOrd` and `Ord`) for node IDs are only provided for
@@ -86,15 +101,6 @@ macro_rules! impl_dynamic_node_id {
 /// `Debug` trait.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct NodeIdUsize(NonMaxUsize);
-
-impl NodeIdUsize {
-    /// Returns the raw `usize` value.
-    #[inline]
-    #[must_use]
-    pub(crate) const fn to_usize(self) -> usize {
-        self.0.get()
-    }
-}
 
 // Prevent `{:#?}` from printing the value in redundant 3 lines.
 impl fmt::Debug for NodeIdUsize {
