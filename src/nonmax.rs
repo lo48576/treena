@@ -80,6 +80,10 @@ macro_rules! define_type {
     };
 }
 
+define_type!(NonMaxU8, core::num::NonZeroU8, u8);
+define_type!(NonMaxU16, core::num::NonZeroU16, u16);
+define_type!(NonMaxU32, core::num::NonZeroU32, u32);
+define_type!(NonMaxU64, core::num::NonZeroU64, u64);
 define_type!(NonMaxUsize, core::num::NonZeroUsize, usize);
 
 #[cfg(test)]

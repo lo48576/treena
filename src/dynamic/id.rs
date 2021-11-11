@@ -130,6 +130,10 @@ macro_rules! define_internal_id_type {
     };
 }
 
+define_internal_id_type!(NodeIdU8, crate::nonmax::NonMaxU8, "u8");
+define_internal_id_type!(NodeIdU16, crate::nonmax::NonMaxU16, "u16");
+define_internal_id_type!(NodeIdU32, crate::nonmax::NonMaxU32, "u32");
+define_internal_id_type!(NodeIdU64, crate::nonmax::NonMaxU64, "u64");
 define_internal_id_type!(NodeIdUsize, crate::nonmax::NonMaxUsize, "usize");
 
 /// Private module to provide [`Sealed`][`private::SealedInternalNodeId`] trait.
