@@ -2,7 +2,7 @@
 
 use core::mem;
 
-use treena::dynamic::{DftEvent, Forest, Node, NodeId, TreeBuilder};
+use treena::dynamic::{DftEvent, Forest, Node, NodeIdUsize, TreeBuilder};
 
 /// Returns the sample tree as a forest and the root node ID.
 ///
@@ -25,7 +25,7 @@ use treena::dynamic::{DftEvent, Forest, Node, NodeId, TreeBuilder};
 /// |       `-- 2-2-0
 /// `-- 3
 /// ```
-fn sample_tree() -> (Forest<&'static str>, NodeId) {
+fn sample_tree() -> (Forest<NodeIdUsize, &'static str>, NodeIdUsize) {
     let mut forest = Forest::new();
     let root = TreeBuilder::new(&mut forest, "root")
         .child("0")
@@ -85,7 +85,7 @@ const SAMPLE_TREE_DFT_EVENTS: &[DftEvent<&str>] = &[
 
 fn to_content_and_depth<'f, I>(iter: I) -> Vec<(DftEvent<&'static str>, usize)>
 where
-    I: Iterator<Item = DftEvent<Node<'f, &'static str>>>,
+    I: Iterator<Item = DftEvent<Node<'f, NodeIdUsize, &'static str>>>,
 {
     iter.map(|ev| ev.map(|node| *node.data()))
         .scan(0, |depth, ev| {
