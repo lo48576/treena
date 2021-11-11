@@ -3,26 +3,26 @@
 use alloc::collections::VecDeque;
 
 use crate::dynamic::hierarchy::Hierarchy;
-use crate::dynamic::NodeId;
+use crate::dynamic::InternalNodeId;
 use crate::nonmax::NonMaxUsize;
 
 /// Depth-first traverseal event.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum DftEvent {
+pub(crate) enum DftEvent<Id> {
     /// Node open.
-    Open(NodeId),
+    Open(Id),
     /// Node close.
-    Close(NodeId),
+    Close(Id),
 }
 
 /// Double-ended depth-first tree traverser.
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct DepthFirstTraverser {
+pub(crate) struct DepthFirstTraverser<Id> {
     /// Next event to emit forward and backward.
-    next: Option<(DftEvent, DftEvent)>,
+    next: Option<(DftEvent<Id>, DftEvent<Id>)>,
 }
 
-impl DepthFirstTraverser {
+impl<Id: InternalNodeId> DepthFirstTraverser<Id> {
     /// Creates a traverser from a toplevel node.
     ///
     /// The toplevel does not need to be the root of a tree.
@@ -31,7 +31,7 @@ impl DepthFirstTraverser {
     ///
     /// Panics if the given node is not alive.
     #[must_use]
-    pub(crate) fn with_toplevel(id: NodeId, hier: &Hierarchy) -> Self {
+    pub(crate) fn with_toplevel(id: Id, hier: &Hierarchy<Id>) -> Self {
         if !hier.is_alive(id) {
             panic!("[precondition] the node to be traversed must be alive");
         }
@@ -42,7 +42,7 @@ impl DepthFirstTraverser {
     }
 
     /// Traverses the tree forward and returns the next node event.
-    pub(crate) fn next(&mut self, hier: &Hierarchy) -> Option<DftEvent> {
+    pub(crate) fn next(&mut self, hier: &Hierarchy<Id>) -> Option<DftEvent<Id>> {
         let (next, next_back) = self.next?;
         match self.next_of_next_forward(hier) {
             Some(next_of_next) => {
@@ -56,7 +56,7 @@ impl DepthFirstTraverser {
     }
 
     /// Traverses the tree backward and returns the next node event.
-    pub(crate) fn next_back(&mut self, hier: &Hierarchy) -> Option<DftEvent> {
+    pub(crate) fn next_back(&mut self, hier: &Hierarchy<Id>) -> Option<DftEvent<Id>> {
         let (next, next_back) = self.next?;
         match self.next_of_next_backward(hier) {
             Some(next_of_next_back) => {
@@ -70,7 +70,7 @@ impl DepthFirstTraverser {
     }
 
     /// Traverses the tree forward and returns the next event of the next event.
-    fn next_of_next_forward(&mut self, hier: &Hierarchy) -> Option<DftEvent> {
+    fn next_of_next_forward(&mut self, hier: &Hierarchy<Id>) -> Option<DftEvent<Id>> {
         let (next, next_back) = self.next?;
         if next == next_back {
             // The next event is the last event.
@@ -108,7 +108,7 @@ impl DepthFirstTraverser {
     }
 
     /// Traverses the tree backward and returns the next event of the next event.
-    fn next_of_next_backward(&mut self, hier: &Hierarchy) -> Option<DftEvent> {
+    fn next_of_next_backward(&mut self, hier: &Hierarchy<Id>) -> Option<DftEvent<Id>> {
         let (next, next_back) = self.next?;
         if next == next_back {
             // The next event is the last event.
@@ -147,13 +147,13 @@ impl DepthFirstTraverser {
 
     /// Returns the next event without advancing the iterator.
     #[must_use]
-    pub(crate) fn peek(&self) -> Option<DftEvent> {
+    pub(crate) fn peek(&self) -> Option<DftEvent<Id>> {
         self.next.map(|(forward, _back)| forward)
     }
 
     /// Returns the backward next event without advancing the iterator.
     #[must_use]
-    pub(crate) fn peek_back(&self) -> Option<DftEvent> {
+    pub(crate) fn peek_back(&self) -> Option<DftEvent<Id>> {
         self.next.map(|(_fwd, back)| back)
     }
 }
@@ -162,12 +162,12 @@ impl DepthFirstTraverser {
 ///
 /// Note that this returns the starting node first.
 #[derive(Debug, Clone, Copy)]
-pub struct AncestorsTraverser {
+pub struct AncestorsTraverser<Id> {
     /// Next event to emit.
-    next: Option<NodeId>,
+    next: Option<Id>,
 }
 
-impl AncestorsTraverser {
+impl<Id: InternalNodeId> AncestorsTraverser<Id> {
     /// Creates a traverser from the node.
     ///
     /// # Panics
@@ -175,7 +175,7 @@ impl AncestorsTraverser {
     /// Panics if the given node is not alive.
     #[inline]
     #[must_use]
-    pub(crate) fn with_start(id: NodeId, hier: &Hierarchy) -> Self {
+    pub(crate) fn with_start(id: Id, hier: &Hierarchy<Id>) -> Self {
         if !hier.is_alive(id) {
             panic!("[precondition] the node to be traversed must be alive");
         }
@@ -186,7 +186,7 @@ impl AncestorsTraverser {
 
     /// Creates a traverser from the node.
     #[must_use]
-    pub(crate) fn next(&mut self, hier: &Hierarchy) -> Option<NodeId> {
+    pub(crate) fn next(&mut self, hier: &Hierarchy<Id>) -> Option<Id> {
         let next = self.next?;
         self.next = hier
             .neighbors(next)
@@ -199,19 +199,19 @@ impl AncestorsTraverser {
     /// Returns the next event without advancing the iterator.
     #[inline]
     #[must_use]
-    pub(crate) fn peek(&self) -> Option<NodeId> {
+    pub(crate) fn peek(&self) -> Option<Id> {
         self.next
     }
 }
 
 /// Double-ended siblings traverser.
 #[derive(Debug, Clone, Copy)]
-pub struct SiblingsTraverser {
+pub struct SiblingsTraverser<Id> {
     /// Next event to emit forward and backward.
-    next: Option<(NodeId, NodeId)>,
+    next: Option<(Id, Id)>,
 }
 
-impl SiblingsTraverser {
+impl<Id: InternalNodeId> SiblingsTraverser<Id> {
     /// Creates a traverser from the parent.
     ///
     /// # Panics
@@ -219,7 +219,7 @@ impl SiblingsTraverser {
     /// Panics if the given node is not alive.
     #[inline]
     #[must_use]
-    pub(crate) fn with_parent(parent: NodeId, hier: &Hierarchy) -> Self {
+    pub(crate) fn with_parent(parent: Id, hier: &Hierarchy<Id>) -> Self {
         let neighbors = hier
             .neighbors(parent)
             .expect("[precondition] the node being traversed must be alive");
@@ -235,7 +235,7 @@ impl SiblingsTraverser {
     /// Panics if the given node is not alive.
     #[inline]
     #[must_use]
-    pub(crate) fn with_first_sibling(first: NodeId, hier: &Hierarchy) -> Self {
+    pub(crate) fn with_first_sibling(first: Id, hier: &Hierarchy<Id>) -> Self {
         let parent = hier
             .neighbors(first)
             .expect("[precondition] the node being traversed must be alive")
@@ -260,7 +260,7 @@ impl SiblingsTraverser {
     /// Panics if the given node is not alive.
     #[inline]
     #[must_use]
-    pub(crate) fn with_last_sibling(last: NodeId, hier: &Hierarchy) -> Self {
+    pub(crate) fn with_last_sibling(last: Id, hier: &Hierarchy<Id>) -> Self {
         let parent = hier
             .neighbors(last)
             .expect("[precondition] the node being traversed must be alive")
@@ -279,7 +279,7 @@ impl SiblingsTraverser {
     }
 
     /// Traverses the tree forward and returns the next node event.
-    pub(crate) fn next(&mut self, hier: &Hierarchy) -> Option<NodeId> {
+    pub(crate) fn next(&mut self, hier: &Hierarchy<Id>) -> Option<Id> {
         let (next, next_back) = self.next?;
         match self.next_of_next_forward(hier) {
             Some(next_of_next) => {
@@ -293,7 +293,7 @@ impl SiblingsTraverser {
     }
 
     /// Traverses the tree backward and returns the next node event.
-    pub(crate) fn next_back(&mut self, hier: &Hierarchy) -> Option<NodeId> {
+    pub(crate) fn next_back(&mut self, hier: &Hierarchy<Id>) -> Option<Id> {
         let (next, next_back) = self.next?;
         match self.next_of_next_backward(hier) {
             Some(next_of_next_back) => {
@@ -307,7 +307,7 @@ impl SiblingsTraverser {
     }
 
     /// Traverses the tree forward and returns the next event of the next event.
-    fn next_of_next_forward(&mut self, hier: &Hierarchy) -> Option<NodeId> {
+    fn next_of_next_forward(&mut self, hier: &Hierarchy<Id>) -> Option<Id> {
         let (next, next_back) = self.next?;
         if next == next_back {
             // The next event is the last event.
@@ -320,7 +320,7 @@ impl SiblingsTraverser {
     }
 
     /// Traverses the tree backward and returns the next event of the next event.
-    fn next_of_next_backward(&mut self, hier: &Hierarchy) -> Option<NodeId> {
+    fn next_of_next_backward(&mut self, hier: &Hierarchy<Id>) -> Option<Id> {
         let (next, next_back) = self.next?;
         if next == next_back {
             // The next event is the last event.
@@ -334,13 +334,13 @@ impl SiblingsTraverser {
 
     /// Returns the next event without advancing the iterator.
     #[must_use]
-    pub(crate) fn peek(&self) -> Option<NodeId> {
+    pub(crate) fn peek(&self) -> Option<Id> {
         self.next.map(|(forward, _back)| forward)
     }
 
     /// Returns the backward next event without advancing the iterator.
     #[must_use]
-    pub(crate) fn peek_back(&self) -> Option<NodeId> {
+    pub(crate) fn peek_back(&self) -> Option<Id> {
         self.next.map(|(_fwd, back)| back)
     }
 }
@@ -356,14 +356,14 @@ impl SiblingsTraverser {
 /// been emitted) can be modified freely. The traverser is guaranteed not to
 /// refer such nodes after leaving them.
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct SafeModeDepthFirstTraverser {
+pub(crate) struct SafeModeDepthFirstTraverser<Id> {
     /// Next event to emit.
-    next: Option<DftEvent>,
+    next: Option<DftEvent<Id>>,
     /// Root node of the traversal.
-    root: NodeId,
+    root: Id,
 }
 
-impl SafeModeDepthFirstTraverser {
+impl<Id: InternalNodeId> SafeModeDepthFirstTraverser<Id> {
     /// Creates a traverser from a toplevel node.
     ///
     /// The toplevel does not need to be the root of a tree.
@@ -372,7 +372,7 @@ impl SafeModeDepthFirstTraverser {
     ///
     /// Panics if the given node is not alive.
     #[must_use]
-    pub(crate) fn new(root: NodeId, hier: &Hierarchy) -> Self {
+    pub(crate) fn new(root: Id, hier: &Hierarchy<Id>) -> Self {
         if !hier.is_alive(root) {
             panic!("[precondition] the node to be traversed must be alive");
         }
@@ -384,14 +384,14 @@ impl SafeModeDepthFirstTraverser {
     }
 
     /// Traverses the tree forward and returns the next node event.
-    pub(crate) fn next(&mut self, hier: &Hierarchy) -> Option<DftEvent> {
+    pub(crate) fn next(&mut self, hier: &Hierarchy<Id>) -> Option<DftEvent<Id>> {
         let next = self.next?;
         self.next = self.next_of_next(hier);
         Some(next)
     }
 
     /// Traverses the tree knd returns the next event of the next event.
-    fn next_of_next(&mut self, hier: &Hierarchy) -> Option<DftEvent> {
+    fn next_of_next(&mut self, hier: &Hierarchy<Id>) -> Option<DftEvent<Id>> {
         let next = self.next?;
         if next == DftEvent::Close(self.root) {
             // The next event is the last event.
@@ -437,14 +437,15 @@ impl SafeModeDepthFirstTraverser {
 
 /// Double-ended limited-depth depth-first tree traverser.
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct ShallowDepthFirstTraverser {
+pub(crate) struct ShallowDepthFirstTraverser<Id> {
     /// Next event and the node depth to emit forward and backward.
-    next: Option<((DftEvent, usize), (DftEvent, usize))>,
+    #[allow(clippy::type_complexity)]
+    next: Option<((DftEvent<Id>, usize), (DftEvent<Id>, usize))>,
     /// Maximum depth.
     max_depth: Option<NonMaxUsize>,
 }
 
-impl ShallowDepthFirstTraverser {
+impl<Id: InternalNodeId> ShallowDepthFirstTraverser<Id> {
     /// Creates a traverser from a toplevel node.
     ///
     /// The toplevel does not need to be the root of a tree.
@@ -454,8 +455,8 @@ impl ShallowDepthFirstTraverser {
     /// Panics if the given node is not alive.
     #[must_use]
     pub(crate) fn with_toplevel_and_max_depth(
-        id: NodeId,
-        hier: &Hierarchy,
+        id: Id,
+        hier: &Hierarchy<Id>,
         max_depth: Option<usize>,
     ) -> Self {
         if !hier.is_alive(id) {
@@ -482,7 +483,7 @@ impl ShallowDepthFirstTraverser {
     }
 
     /// Traverses the tree forward and returns the next node event and depth.
-    pub(crate) fn next(&mut self, hier: &Hierarchy) -> Option<(DftEvent, usize)> {
+    pub(crate) fn next(&mut self, hier: &Hierarchy<Id>) -> Option<(DftEvent<Id>, usize)> {
         let (next, next_back) = self.next?;
         match self.next_of_next_forward(hier) {
             Some(next_of_next) => {
@@ -496,7 +497,7 @@ impl ShallowDepthFirstTraverser {
     }
 
     /// Traverses the tree backward and returns the next node event and depth.
-    pub(crate) fn next_back(&mut self, hier: &Hierarchy) -> Option<(DftEvent, usize)> {
+    pub(crate) fn next_back(&mut self, hier: &Hierarchy<Id>) -> Option<(DftEvent<Id>, usize)> {
         let (next, next_back) = self.next?;
         match self.next_of_next_backward(hier) {
             Some(next_of_next_back) => {
@@ -510,7 +511,7 @@ impl ShallowDepthFirstTraverser {
     }
 
     /// Traverses the tree forward and returns the next event of the next event.
-    fn next_of_next_forward(&mut self, hier: &Hierarchy) -> Option<(DftEvent, usize)> {
+    fn next_of_next_forward(&mut self, hier: &Hierarchy<Id>) -> Option<(DftEvent<Id>, usize)> {
         let (next, next_back) = self.next?;
         if next == next_back {
             // The next event is the last event.
@@ -554,7 +555,7 @@ impl ShallowDepthFirstTraverser {
     }
 
     /// Traverses the tree backward and returns the next event of the next event.
-    fn next_of_next_backward(&mut self, hier: &Hierarchy) -> Option<(DftEvent, usize)> {
+    fn next_of_next_backward(&mut self, hier: &Hierarchy<Id>) -> Option<(DftEvent<Id>, usize)> {
         let (next, next_back) = self.next?;
         if next == next_back {
             // The next event is the last event.
@@ -599,13 +600,13 @@ impl ShallowDepthFirstTraverser {
 
     /// Returns the next event without advancing the iterator.
     #[must_use]
-    pub(crate) fn peek(&self) -> Option<(DftEvent, usize)> {
+    pub(crate) fn peek(&self) -> Option<(DftEvent<Id>, usize)> {
         self.next.map(|(forward, _back)| forward)
     }
 
     /// Returns the backward next event without advancing the iterator.
     #[must_use]
-    pub(crate) fn peek_back(&self) -> Option<(DftEvent, usize)> {
+    pub(crate) fn peek_back(&self) -> Option<(DftEvent<Id>, usize)> {
         self.next.map(|(_fwd, back)| back)
     }
 }
@@ -617,18 +618,18 @@ impl ShallowDepthFirstTraverser {
 /// Note that traversing all nodes will be `O(n^2)` operation in worst case,
 /// not `O(n)`.
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct BreadthFirstTraverser {
+pub(crate) struct BreadthFirstTraverser<Id> {
     /// Internal shallow depth-first traverser.
-    inner: ShallowDepthFirstTraverser,
+    inner: ShallowDepthFirstTraverser<Id>,
     /// Root node.
     ///
     /// If this is `None`, it means that the iteration has been completed.
-    root: Option<NodeId>,
+    root: Option<Id>,
     /// Currently iterating depth.
     current_depth: usize,
 }
 
-impl BreadthFirstTraverser {
+impl<Id: InternalNodeId> BreadthFirstTraverser<Id> {
     /// Creates a traverser from a toplevel node.
     ///
     /// The toplevel does not need to be the root of a tree.
@@ -637,7 +638,7 @@ impl BreadthFirstTraverser {
     ///
     /// Panics if the given node is not alive.
     #[must_use]
-    pub(crate) fn with_toplevel(id: NodeId, hier: &Hierarchy) -> Self {
+    pub(crate) fn with_toplevel(id: Id, hier: &Hierarchy<Id>) -> Self {
         if !hier.is_alive(id) {
             panic!("[precondition] the node to be traversed must be alive");
         }
@@ -650,7 +651,7 @@ impl BreadthFirstTraverser {
     }
 
     /// Traverses the tree and returns the next node ID.
-    pub(crate) fn next(&mut self, hier: &Hierarchy) -> Option<(NodeId, usize)> {
+    pub(crate) fn next(&mut self, hier: &Hierarchy<Id>) -> Option<(Id, usize)> {
         let root = self.root?;
 
         if let Some(id) = self.next_inner(hier) {
@@ -676,7 +677,7 @@ impl BreadthFirstTraverser {
     }
 
     /// Returns the next node open event with the current depth.
-    fn next_inner(&mut self, hier: &Hierarchy) -> Option<NodeId> {
+    fn next_inner(&mut self, hier: &Hierarchy<Id>) -> Option<Id> {
         while let Some((ev, depth)) = self.inner.next(hier) {
             if depth == self.current_depth {
                 if let DftEvent::Open(id) = ev {
@@ -694,9 +695,9 @@ impl BreadthFirstTraverser {
 /// The size of this type must be equal to the size of `NodeId` itself, due to
 /// niche optimization.
 #[derive(Debug, Clone, Copy)]
-enum BftQueuedEvent {
+enum BftQueuedEvent<Id> {
     /// Node at the current level.
-    Node(NodeId),
+    Node(Id),
     /// No more nodes at the current level. Increment the depth.
     IncrementDepth,
 }
@@ -705,16 +706,16 @@ enum BftQueuedEvent {
 ///
 /// This traverser heap-allocates, and iterating all nodes is `O(n)` operation.
 #[derive(Debug, Clone)]
-pub(crate) struct AllocatingBreadthFirstTraverser {
+pub(crate) struct AllocatingBreadthFirstTraverser<Id> {
     /// Queued events.
     // This queue must have zero or one `BftQueuedEvent::IncrementDepth` at any
     // moment.
-    events: VecDeque<BftQueuedEvent>,
+    events: VecDeque<BftQueuedEvent<Id>>,
     /// Currently iterating depth.
     current_depth: usize,
 }
 
-impl AllocatingBreadthFirstTraverser {
+impl<Id: InternalNodeId> AllocatingBreadthFirstTraverser<Id> {
     /// Creates a traverser from a toplevel node.
     ///
     /// The toplevel does not need to be the root of a tree.
@@ -723,7 +724,7 @@ impl AllocatingBreadthFirstTraverser {
     ///
     /// Panics if the given node is not alive.
     #[must_use]
-    pub(crate) fn with_toplevel(id: NodeId, hier: &Hierarchy) -> Self {
+    pub(crate) fn with_toplevel(id: Id, hier: &Hierarchy<Id>) -> Self {
         if !hier.is_alive(id) {
             panic!("[precondition] the node to be traversed must be alive");
         }
@@ -738,7 +739,7 @@ impl AllocatingBreadthFirstTraverser {
     }
 
     /// Traverses the tree and returns the next node ID and depth.
-    pub(crate) fn next(&mut self, hier: &Hierarchy) -> Option<(NodeId, usize)> {
+    pub(crate) fn next(&mut self, hier: &Hierarchy<Id>) -> Option<(Id, usize)> {
         while let Some(ev) = self.events.pop_front() {
             let next = match ev {
                 BftQueuedEvent::Node(v) => v,
@@ -791,7 +792,7 @@ impl AllocatingBreadthFirstTraverser {
     /// Returns the next event without advancing the iterator.
     #[inline]
     #[must_use]
-    pub(crate) fn peek(&self) -> Option<(NodeId, usize)> {
+    pub(crate) fn peek(&self) -> Option<(Id, usize)> {
         match *self.events.front()? {
             BftQueuedEvent::Node(next) => Some((next, self.current_depth)),
             BftQueuedEvent::IncrementDepth => match *self.events.get(1)? {
@@ -810,11 +811,13 @@ mod tests {
 
     use core::mem;
 
+    use crate::dynamic::NodeIdUsize;
+
     #[test]
     fn bft_queued_event_niche_optimized() {
         assert_eq!(
-            mem::size_of::<BftQueuedEvent>(),
-            mem::size_of::<NodeId>(),
+            mem::size_of::<BftQueuedEvent<NodeIdUsize>>(),
+            mem::size_of::<NodeIdUsize>(),
             "`BftQueuedEvent` type must have the same size as \
              `NodeId` type due to niche optimization"
         );
