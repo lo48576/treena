@@ -1,7 +1,7 @@
 //! Tree and forest builder.
 
 use crate::dynamic::forest::Forest;
-use crate::dynamic::{InsertAs, NodeIdUsize};
+use crate::dynamic::{InsertAs, NodeId, NodeIdUsize};
 
 /// Tree builder.
 ///
@@ -23,9 +23,9 @@ use crate::dynamic::{InsertAs, NodeIdUsize};
 ///
 /// ```
 /// # use treena::dynamic::DftEvent;
-/// use treena::dynamic::{Forest, TreeBuilder};
+/// use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
 ///
-/// let mut forest: Forest<&'static str> = Forest::new();
+/// let mut forest: Forest<NodeIdUsize, &'static str> = Forest::new();
 /// let mut builder = TreeBuilder::new(&mut forest, "root");
 /// builder
 ///     .child("0")
@@ -91,9 +91,9 @@ use crate::dynamic::{InsertAs, NodeIdUsize};
 ///
 /// ```
 /// # use treena::dynamic::DftEvent;
-/// use treena::dynamic::{Forest, TreeBuilder};
+/// use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
 ///
-/// let mut forest = Forest::new();
+/// let mut forest = Forest::<NodeIdUsize, _>::new();
 /// let root = TreeBuilder::new(&mut forest, "root")
 ///     .child("0")
 ///     .child("0-0")
@@ -148,18 +148,18 @@ use crate::dynamic::{InsertAs, NodeIdUsize};
 /// # );
 /// ```
 #[derive(Debug)]
-pub struct TreeBuilder<'a, T> {
+pub struct TreeBuilder<'a, Id: NodeId, T> {
     /// Target forest.
-    forest: &'a mut Forest<T>,
+    forest: &'a mut Forest<Id, T>,
     /// Node ID of the root node.
     root: NodeIdUsize,
     /// Current node.
     current: NodeIdUsize,
 }
 
-impl<'a, T> TreeBuilder<'a, T> {
+impl<'a, Id: NodeId, T> TreeBuilder<'a, Id, T> {
     /// Creates a root node and the tree builder for the root node.
-    pub fn new(forest: &'a mut Forest<T>, root_data: T) -> Self {
+    pub fn new(forest: &'a mut Forest<Id, T>, root_data: T) -> Self {
         let root = forest.create_root(root_data);
         Self {
             forest,
@@ -171,14 +171,14 @@ impl<'a, T> TreeBuilder<'a, T> {
     /// Returns a reference to the forest.
     #[inline]
     #[must_use]
-    pub fn forest(&self) -> &Forest<T> {
+    pub fn forest(&self) -> &Forest<Id, T> {
         self.forest
     }
 
     /// Returns a mutable reference to the forest.
     #[inline]
     #[must_use]
-    pub fn forest_mut(&mut self) -> &mut Forest<T> {
+    pub fn forest_mut(&mut self) -> &mut Forest<Id, T> {
         self.forest
     }
 

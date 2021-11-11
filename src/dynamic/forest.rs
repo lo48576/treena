@@ -12,7 +12,7 @@ use alloc::vec::Vec;
 
 use crate::dynamic::hierarchy::traverse::{DftEvent, SafeModeDepthFirstTraverser};
 use crate::dynamic::hierarchy::{Hierarchy, Neighbors};
-use crate::dynamic::{InsertAs, NodeIdUsize};
+use crate::dynamic::{InsertAs, NodeId, NodeIdUsize};
 
 pub use self::builder::TreeBuilder;
 #[cfg(any(feature = "debug-print"))]
@@ -32,10 +32,10 @@ pub use self::node::{Node, NodeMut};
 /// Forest can be created by [`Forest::new`] method.
 ///
 /// ```
-/// use treena::dynamic::Forest;
+/// use treena::dynamic::{Forest, NodeIdUsize};
 ///
 /// // Usually you want the forest to be `mut` to modify structure.
-/// let forest = Forest::<i64>::new();
+/// let forest = Forest::<NodeIdUsize, i64>::new();
 /// ```
 ///
 /// ## Building tree and modifying structure
@@ -112,7 +112,7 @@ pub use self::node::{Node, NodeMut};
 /// does not heap-allocate, but iterating all nodes will be `O(n^2)` operation
 /// in worst case, not `O(n)`.
 #[derive(Debug, Clone)]
-pub struct Forest<T> {
+pub struct Forest<Id: NodeId, T> {
     /// Hierarchy.
     hierarchy: Hierarchy<NodeIdUsize>,
     /// Data.
@@ -123,18 +123,20 @@ pub struct Forest<T> {
     // elements would be error prone and unsafe. To avoid bugs from `unsafe`
     // codes, use `Option<T>` here.
     data: Vec<Option<T>>,
+    /// Dummy.
+    _dummy: core::marker::PhantomData<Id>,
 }
 
 /// Forest creation.
-impl<T> Forest<T> {
+impl<Id: NodeId, T> Forest<Id, T> {
     /// Creates a new empty forest.
     ///
     /// # Examples
     ///
     /// ```
-    /// use treena::dynamic::Forest;
+    /// use treena::dynamic::{Forest, NodeIdUsize};
     ///
-    /// let mut forest = Forest::new();
+    /// let mut forest = Forest::<NodeIdUsize, _>::new();
     ///
     /// let id = forest.create_root(42);
     /// assert_eq!(forest.data(id).copied(), Some(42));
@@ -147,7 +149,7 @@ impl<T> Forest<T> {
 }
 
 /// Individual node access.
-impl<T> Forest<T> {
+impl<Id: NodeId, T> Forest<Id, T> {
     /// Returns true if the node exists and is not yet removed.
     #[must_use]
     fn is_alive(&self, id: NodeIdUsize) -> bool {
@@ -161,9 +163,9 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use treena::dynamic::Forest;
+    /// use treena::dynamic::{Forest, NodeIdUsize};
     ///
-    /// let mut forest = Forest::new();
+    /// let mut forest = Forest::<NodeIdUsize, _>::new();
     /// let id = forest.create_root(42);
     ///
     /// let node = forest.node(id).expect("should never fail: node exists");
@@ -178,7 +180,7 @@ impl<T> Forest<T> {
     /// ```
     #[inline]
     #[must_use]
-    pub fn node(&self, id: NodeIdUsize) -> Option<Node<'_, T>> {
+    pub fn node(&self, id: NodeIdUsize) -> Option<Node<'_, Id, T>> {
         Node::new(self, id)
     }
 
@@ -187,9 +189,9 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use treena::dynamic::{AdoptAs, Forest};
+    /// use treena::dynamic::{AdoptAs, Forest, NodeIdUsize};
     ///
-    /// let mut forest = Forest::new();
+    /// let mut forest = Forest::<NodeIdUsize, _>::new();
     /// let id = forest.create_root(42);
     ///
     /// let mut node = forest.node_mut(id).expect("should never fail: node exists");
@@ -214,7 +216,7 @@ impl<T> Forest<T> {
     /// ```
     #[inline]
     #[must_use]
-    pub fn node_mut(&mut self, id: NodeIdUsize) -> Option<NodeMut<'_, T>> {
+    pub fn node_mut(&mut self, id: NodeIdUsize) -> Option<NodeMut<'_, Id, T>> {
         NodeMut::new(self, id)
     }
 
@@ -223,9 +225,9 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use treena::dynamic::Forest;
+    /// use treena::dynamic::{Forest, NodeIdUsize};
     ///
-    /// let mut forest = Forest::new();
+    /// let mut forest = Forest::<NodeIdUsize, _>::new();
     /// let id = forest.create_root(42);
     ///
     /// assert_eq!(forest.data(id).copied(), Some(42));
@@ -243,9 +245,9 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use treena::dynamic::Forest;
+    /// use treena::dynamic::{Forest, NodeIdUsize};
     ///
-    /// let mut forest = Forest::new();
+    /// let mut forest = Forest::<NodeIdUsize, _>::new();
     /// let id = forest.create_root(42);
     /// assert_eq!(forest.data(id).copied(), Some(42));
     ///
@@ -270,7 +272,7 @@ impl<T> Forest<T> {
 }
 
 /// Node creation and/or insertion.
-impl<T> Forest<T> {
+impl<Id: NodeId, T> Forest<Id, T> {
     /// Creates a new root node.
     ///
     /// # Panics
@@ -280,9 +282,9 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use treena::dynamic::Forest;
+    /// use treena::dynamic::{Forest, NodeIdUsize};
     ///
-    /// let mut forest = Forest::new();
+    /// let mut forest = Forest::<NodeIdUsize, _>::new();
     /// let id = forest.create_root(42);
     /// assert_eq!(forest.data(id).copied(), Some(42));
     /// assert!(
@@ -298,9 +300,9 @@ impl<T> Forest<T> {
     /// The newly added root node has no connections between other trees.
     ///
     /// ```
-    /// use treena::dynamic::Forest;
+    /// use treena::dynamic::{Forest, NodeIdUsize};
     ///
-    /// let mut forest = Forest::new();
+    /// let mut forest = Forest::<NodeIdUsize, _>::new();
     /// let another_root = forest.create_root(42);
     ///
     /// let root = forest.create_root(314);
@@ -362,7 +364,7 @@ impl<T> Forest<T> {
 }
 
 /// Detaching and insertion.
-impl<T> Forest<T> {
+impl<Id: NodeId, T> Forest<Id, T> {
     /// Detaches and inserts the given node to the target position.
     ///
     /// # Panics
@@ -389,8 +391,8 @@ impl<T> Forest<T> {
     /// # #[cfg(feature = "debug-print")] {
     /// use treena::dynamic::InsertAs;
     ///
-    /// # use treena::dynamic::{Forest, TreeBuilder};
-    /// # let mut forest = Forest::new();
+    /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
+    /// # let mut forest = Forest::<NodeIdUsize, _>::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
     /// # let child_1 = builder
     /// #     .child("0")
@@ -437,8 +439,8 @@ impl<T> Forest<T> {
     /// # #[cfg(feature = "debug-print")] {
     /// use treena::dynamic::InsertAs;
     ///
-    /// # use treena::dynamic::{Forest, TreeBuilder};
-    /// # let mut forest = Forest::new();
+    /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
+    /// # let mut forest = Forest::<NodeIdUsize, _>::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
     /// # let child_1 = builder
     /// #     .child("0")
@@ -485,8 +487,8 @@ impl<T> Forest<T> {
     /// # #[cfg(feature = "debug-print")] {
     /// use treena::dynamic::InsertAs;
     ///
-    /// # use treena::dynamic::{Forest, TreeBuilder};
-    /// # let mut forest = Forest::new();
+    /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
+    /// # let mut forest = Forest::<NodeIdUsize, _>::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
     /// # let child_1 = builder
     /// #     .child("0")
@@ -533,8 +535,8 @@ impl<T> Forest<T> {
     /// # #[cfg(feature = "debug-print")] {
     /// use treena::dynamic::InsertAs;
     ///
-    /// # use treena::dynamic::{Forest, TreeBuilder};
-    /// # let mut forest = Forest::new();
+    /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
+    /// # let mut forest = Forest::<NodeIdUsize, _>::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
     /// # let child_1 = builder
     /// #     .child("0")
@@ -584,7 +586,7 @@ impl<T> Forest<T> {
 }
 
 /// Detaching and/or removal.
-impl<T> Forest<T> {
+impl<Id: NodeId, T> Forest<Id, T> {
     /// Detaches the tree from neighbors.
     ///
     /// Tree structure under the given node will be preserved.
@@ -601,8 +603,8 @@ impl<T> Forest<T> {
     ///
     /// ```
     /// # #[cfg(feature = "debug-print")] {
-    /// # use treena::dynamic::{Forest, TreeBuilder};
-    /// # let mut forest = Forest::new();
+    /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
+    /// # let mut forest = Forest::<NodeIdUsize, _>::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
     /// # let child_1 = builder
     /// #     .child("0")
@@ -664,8 +666,8 @@ impl<T> Forest<T> {
     ///
     /// ```
     /// # #[cfg(feature = "debug-print")] {
-    /// # use treena::dynamic::{Forest, TreeBuilder};
-    /// # let mut forest = Forest::new();
+    /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
+    /// # let mut forest = Forest::<NodeIdUsize, _>::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
     /// # let child_1 = builder
     /// #     .child("0")
@@ -734,8 +736,8 @@ impl<T> Forest<T> {
     ///
     /// ```
     /// # #[cfg(feature = "debug-print")] {
-    /// # use treena::dynamic::{Forest, TreeBuilder};
-    /// # let mut forest = Forest::new();
+    /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
+    /// # let mut forest = Forest::<NodeIdUsize, _>::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
     /// # let child_1_1 = builder
     /// #     .child("0")
@@ -841,8 +843,8 @@ impl<T> Forest<T> {
     ///
     /// ```
     /// # #[cfg(feature = "debug-print")] {
-    /// # use treena::dynamic::{Forest, TreeBuilder};
-    /// # let mut forest = Forest::new();
+    /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
+    /// # let mut forest = Forest::<NodeIdUsize, _>::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
     /// # let child_1_1 = builder
     /// #     .child("0")
@@ -933,8 +935,8 @@ impl<T> Forest<T> {
     ///
     /// ```
     /// # #[cfg(feature = "debug-print")] {
-    /// # use treena::dynamic::{Forest, TreeBuilder};
-    /// # let mut forest = Forest::new();
+    /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
+    /// # let mut forest = Forest::<NodeIdUsize, _>::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
     /// # let child_1_1 = builder
     /// #     .child("0")
@@ -985,7 +987,7 @@ impl<T> Forest<T> {
 }
 
 /// Iteration.
-impl<T> Forest<T> {
+impl<Id: NodeId, T> Forest<Id, T> {
     /// Returns a depth-first traversal iterator of a subtree.
     ///
     /// # Panics
@@ -995,9 +997,9 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use treena::dynamic::{DftEvent, Forest, InsertAs};
+    /// use treena::dynamic::{DftEvent, Forest, InsertAs, NodeIdUsize};
     ///
-    /// let mut forest = Forest::new();
+    /// let mut forest = Forest::<NodeIdUsize, _>::new();
     /// let root = forest.create_root("root");
     /// let child0 = forest.create_insert("0", InsertAs::LastChildOf(root));
     /// forest.create_insert("0-0", InsertAs::LastChildOf(child0));
@@ -1022,7 +1024,10 @@ impl<T> Forest<T> {
     /// ```
     #[inline]
     #[must_use]
-    pub fn depth_first_traverse(&self, node: NodeIdUsize) -> traverse::DepthFirstTraverse<'_, T> {
+    pub fn depth_first_traverse(
+        &self,
+        node: NodeIdUsize,
+    ) -> traverse::DepthFirstTraverse<'_, Id, T> {
         self.node(node)
             .expect("[precondition] node must be alive")
             .depth_first_traverse()
@@ -1037,9 +1042,9 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use treena::dynamic::{DftEvent, Forest, InsertAs};
+    /// use treena::dynamic::{DftEvent, Forest, InsertAs, NodeIdUsize};
     ///
-    /// let mut forest = Forest::new();
+    /// let mut forest = Forest::<NodeIdUsize, _>::new();
     /// let root = forest.create_root("root");
     /// let child0 = forest.create_insert("0", InsertAs::LastChildOf(root));
     /// let child00 = forest.create_insert("0-0", InsertAs::LastChildOf(child0));
@@ -1078,9 +1083,9 @@ impl<T> Forest<T> {
     /// Depth is counted from the start of traversal, not from the true root node.
     ///
     /// ```
-    /// use treena::dynamic::{DftEvent, Forest, InsertAs};
+    /// use treena::dynamic::{DftEvent, Forest, InsertAs, NodeIdUsize};
     ///
-    /// let mut forest = Forest::new();
+    /// let mut forest = Forest::<NodeIdUsize, _>::new();
     /// let root = forest.create_root("root");
     /// let child0 = forest.create_insert("0", InsertAs::LastChildOf(root));
     /// let child00 = forest.create_insert("0-0", InsertAs::LastChildOf(child0));
@@ -1117,7 +1122,7 @@ impl<T> Forest<T> {
         &self,
         node: NodeIdUsize,
         max_depth: Option<usize>,
-    ) -> traverse::ShallowDepthFirstTraverse<'_, T> {
+    ) -> traverse::ShallowDepthFirstTraverse<'_, Id, T> {
         self.node(node)
             .expect("[precondition] node must be alive")
             .shallow_depth_first_traverse(max_depth)
@@ -1141,9 +1146,9 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use treena::dynamic::{Forest, InsertAs, TreeBuilder};
+    /// use treena::dynamic::{Forest, InsertAs, NodeIdUsize, TreeBuilder};
     ///
-    /// let mut forest = Forest::new();
+    /// let mut forest = Forest::<NodeIdUsize, _>::new();
     /// let root = TreeBuilder::new(&mut forest, "root")
     ///     .child("0")
     ///     .child("0-0")
@@ -1194,7 +1199,7 @@ impl<T> Forest<T> {
     pub fn breadth_first_traverse(
         &self,
         node: NodeIdUsize,
-    ) -> traverse::BreadthFirstTraverse<'_, T> {
+    ) -> traverse::BreadthFirstTraverse<'_, Id, T> {
         self.node(node)
             .expect("[precondition] node must be alive")
             .breadth_first_traverse()
@@ -1215,9 +1220,9 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use treena::dynamic::{Forest, InsertAs, TreeBuilder};
+    /// use treena::dynamic::{Forest, InsertAs, NodeIdUsize, TreeBuilder};
     ///
-    /// let mut forest = Forest::new();
+    /// let mut forest = Forest::<NodeIdUsize, _>::new();
     /// let root = TreeBuilder::new(&mut forest, "root")
     ///     .child("0")
     ///     .child("0-0")
@@ -1268,7 +1273,7 @@ impl<T> Forest<T> {
     pub fn allocating_breadth_first_traverse(
         &self,
         node: NodeIdUsize,
-    ) -> traverse::AllocatingBreadthFirstTraverse<'_, T> {
+    ) -> traverse::AllocatingBreadthFirstTraverse<'_, Id, T> {
         self.node(node)
             .expect("[precondition] node must be alive")
             .allocating_breadth_first_traverse()
@@ -1283,9 +1288,9 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use treena::dynamic::{Forest, InsertAs};
+    /// use treena::dynamic::{Forest, InsertAs, NodeIdUsize};
     ///
-    /// let mut forest = Forest::new();
+    /// let mut forest = Forest::<NodeIdUsize, _>::new();
     /// let root = forest.create_root("root");
     /// let child0 = forest.create_insert("0", InsertAs::LastChildOf(root));
     /// let child00 = forest.create_insert("0-0", InsertAs::LastChildOf(child0));
@@ -1300,7 +1305,7 @@ impl<T> Forest<T> {
     /// ```
     #[inline]
     #[must_use]
-    pub fn ancestors(&self, node: NodeIdUsize) -> traverse::Ancestors<'_, T> {
+    pub fn ancestors(&self, node: NodeIdUsize) -> traverse::Ancestors<'_, Id, T> {
         self.node(node)
             .expect("[precondition] node must be alive")
             .ancestors()
@@ -1311,9 +1316,9 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use treena::dynamic::{Forest, InsertAs};
+    /// use treena::dynamic::{Forest, InsertAs, NodeIdUsize};
     ///
-    /// let mut forest = Forest::new();
+    /// let mut forest = Forest::<NodeIdUsize, _>::new();
     /// let root = forest.create_root("root");
     /// let child0 = forest.create_insert("0", InsertAs::LastChildOf(root));
     /// let child00 = forest.create_insert("0-0", InsertAs::LastChildOf(child0));
@@ -1328,7 +1333,7 @@ impl<T> Forest<T> {
     /// ```
     #[inline]
     #[must_use]
-    pub fn ancestors_or_self(&self, node: NodeIdUsize) -> traverse::Ancestors<'_, T> {
+    pub fn ancestors_or_self(&self, node: NodeIdUsize) -> traverse::Ancestors<'_, Id, T> {
         self.node(node)
             .expect("[precondition] node must be alive")
             .ancestors_or_self()
@@ -1339,9 +1344,9 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use treena::dynamic::{DftEvent, Forest, InsertAs};
+    /// use treena::dynamic::{DftEvent, Forest, InsertAs, NodeIdUsize};
     ///
-    /// let mut forest = Forest::new();
+    /// let mut forest = Forest::<NodeIdUsize, _>::new();
     /// let root = forest.create_root("root");
     /// let child0 = forest.create_insert("0", InsertAs::LastChildOf(root));
     /// let child00 = forest.create_insert("0-0", InsertAs::LastChildOf(child0));
@@ -1358,7 +1363,7 @@ impl<T> Forest<T> {
     /// ```
     #[inline]
     #[must_use]
-    pub fn children(&self, node: NodeIdUsize) -> traverse::Siblings<'_, T> {
+    pub fn children(&self, node: NodeIdUsize) -> traverse::Siblings<'_, Id, T> {
         self.node(node)
             .expect("[precondition] node must be alive")
             .children()
@@ -1369,9 +1374,9 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use treena::dynamic::{Forest, InsertAs};
+    /// use treena::dynamic::{Forest, InsertAs, NodeIdUsize};
     ///
-    /// let mut forest = Forest::new();
+    /// let mut forest = Forest::<NodeIdUsize, _>::new();
     /// let root = forest.create_root("root");
     /// let _child0 = forest.create_insert("0", InsertAs::LastChildOf(root));
     /// let child1 = forest.create_insert("1", InsertAs::LastChildOf(root));
@@ -1387,7 +1392,7 @@ impl<T> Forest<T> {
     /// ```
     #[inline]
     #[must_use]
-    pub fn following_siblings(&self, node: NodeIdUsize) -> traverse::Siblings<'_, T> {
+    pub fn following_siblings(&self, node: NodeIdUsize) -> traverse::Siblings<'_, Id, T> {
         self.node(node)
             .expect("[precondition] node must be alive")
             .following_siblings()
@@ -1398,9 +1403,9 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use treena::dynamic::{Forest, InsertAs};
+    /// use treena::dynamic::{Forest, InsertAs, NodeIdUsize};
     ///
-    /// let mut forest = Forest::new();
+    /// let mut forest = Forest::<NodeIdUsize, _>::new();
     /// let root = forest.create_root("root");
     /// let _child0 = forest.create_insert("0", InsertAs::LastChildOf(root));
     /// let child1 = forest.create_insert("1", InsertAs::LastChildOf(root));
@@ -1416,7 +1421,7 @@ impl<T> Forest<T> {
     /// ```
     #[inline]
     #[must_use]
-    pub fn following_siblings_or_self(&self, node: NodeIdUsize) -> traverse::Siblings<'_, T> {
+    pub fn following_siblings_or_self(&self, node: NodeIdUsize) -> traverse::Siblings<'_, Id, T> {
         self.node(node)
             .expect("[precondition] node must be alive")
             .following_siblings_or_self()
@@ -1430,9 +1435,9 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use treena::dynamic::{Forest, InsertAs};
+    /// use treena::dynamic::{Forest, InsertAs, NodeIdUsize};
     ///
-    /// let mut forest = Forest::new();
+    /// let mut forest = Forest::<NodeIdUsize, _>::new();
     /// let root = forest.create_root("root");
     /// let _child0 = forest.create_insert("0", InsertAs::LastChildOf(root));
     /// let _child1 = forest.create_insert("1", InsertAs::LastChildOf(root));
@@ -1458,7 +1463,7 @@ impl<T> Forest<T> {
     /// ```
     #[inline]
     #[must_use]
-    pub fn preceding_siblings(&self, node: NodeIdUsize) -> traverse::Siblings<'_, T> {
+    pub fn preceding_siblings(&self, node: NodeIdUsize) -> traverse::Siblings<'_, Id, T> {
         self.node(node)
             .expect("[precondition] node must be alive")
             .preceding_siblings()
@@ -1472,9 +1477,9 @@ impl<T> Forest<T> {
     /// # Examples
     ///
     /// ```
-    /// use treena::dynamic::{Forest, InsertAs};
+    /// use treena::dynamic::{Forest, InsertAs, NodeIdUsize};
     ///
-    /// let mut forest = Forest::new();
+    /// let mut forest = Forest::<NodeIdUsize, _>::new();
     /// let root = forest.create_root("root");
     /// let _child0 = forest.create_insert("0", InsertAs::LastChildOf(root));
     /// let _child1 = forest.create_insert("1", InsertAs::LastChildOf(root));
@@ -1500,7 +1505,7 @@ impl<T> Forest<T> {
     /// ```
     #[inline]
     #[must_use]
-    pub fn preceding_siblings_or_self(&self, node: NodeIdUsize) -> traverse::Siblings<'_, T> {
+    pub fn preceding_siblings_or_self(&self, node: NodeIdUsize) -> traverse::Siblings<'_, Id, T> {
         self.node(node)
             .expect("[precondition] node must be alive")
             .preceding_siblings_or_self()
@@ -1508,7 +1513,7 @@ impl<T> Forest<T> {
 }
 
 /// Tree cloning.
-impl<T: Clone> Forest<T> {
+impl<Id: NodeId, T: Clone> Forest<Id, T> {
     /// Clones a subtree as a new tree in the forest, and returns the new root ID.
     ///
     /// # Panics
@@ -1519,8 +1524,8 @@ impl<T: Clone> Forest<T> {
     ///
     /// ```
     /// # #[cfg(feature = "debug-print")] {
-    /// # use treena::dynamic::{Forest, TreeBuilder};
-    /// # let mut forest = Forest::new();
+    /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
+    /// # let mut forest = Forest::<NodeIdUsize, _>::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
     /// # let child_1 = builder
     /// #     .child("0")
@@ -1573,8 +1578,8 @@ impl<T: Clone> Forest<T> {
     ///
     /// ```
     /// # #[cfg(feature = "debug-print")] {
-    /// # use treena::dynamic::{Forest, TreeBuilder};
-    /// # let mut forest_src = Forest::new();
+    /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
+    /// # let mut forest_src = Forest::<NodeIdUsize, _>::new();
     /// # let mut builder = TreeBuilder::new(&mut forest_src, "root");
     /// # let child_1 = builder
     /// #     .child("0")
@@ -1598,7 +1603,7 @@ impl<T: Clone> Forest<T> {
     /// assert_eq!(forest_src.debug_print(root).to_string(), before);
     ///
     /// // Destination forest.
-    /// let mut forest_dest = Forest::new();
+    /// let mut forest_dest = Forest::<NodeIdUsize, _>::new();
     ///
     /// // Clone a tree.
     /// let tree_src = forest_src.node(child_1).expect("the node is available");
@@ -1616,7 +1621,7 @@ impl<T: Clone> Forest<T> {
     /// # }
     /// ```
     #[must_use = "newly created node cannot be accessed without the returned node ID"]
-    pub fn clone_foreign_tree(&mut self, src_root: Node<'_, T>) -> NodeIdUsize {
+    pub fn clone_foreign_tree(&mut self, src_root: Node<'_, Id, T>) -> NodeIdUsize {
         self.clone_foreign_tree_with_id_mapping(src_root, |_, _| ())
     }
 
@@ -1630,8 +1635,8 @@ impl<T: Clone> Forest<T> {
     ///
     /// ```
     /// # #[cfg(feature = "debug-print")] {
-    /// # use treena::dynamic::{Forest, TreeBuilder};
-    /// # let mut forest = Forest::new();
+    /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
+    /// # let mut forest = Forest::<NodeIdUsize, _>::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
     /// # let child_1 = builder
     /// #     .child("0")
@@ -1745,8 +1750,8 @@ impl<T: Clone> Forest<T> {
     ///
     /// ```
     /// # #[cfg(feature = "debug-print")] {
-    /// # use treena::dynamic::{Forest, TreeBuilder};
-    /// # let mut forest_src = Forest::new();
+    /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
+    /// # let mut forest_src = Forest::<NodeIdUsize, _>::new();
     /// # let mut builder = TreeBuilder::new(&mut forest_src, "root");
     /// # let child_1 = builder
     /// #     .child("0")
@@ -1770,7 +1775,7 @@ impl<T: Clone> Forest<T> {
     /// assert_eq!(forest_src.debug_print(root).to_string(), before);
     ///
     /// // Destination forest.
-    /// let mut forest_dest = Forest::new();
+    /// let mut forest_dest = Forest::<NodeIdUsize, _>::new();
     ///
     /// // Clone a tree.
     /// let tree_src = forest_src.node(child_1).expect("the node is available");
@@ -1799,7 +1804,7 @@ impl<T: Clone> Forest<T> {
     #[must_use = "newly created node cannot be accessed without the returned node ID"]
     pub fn clone_foreign_tree_with_id_mapping<F>(
         &mut self,
-        src_root: Node<'_, T>,
+        src_root: Node<'_, Id, T>,
         mut add_mapping: F,
     ) -> NodeIdUsize
     where
@@ -1844,13 +1849,13 @@ impl<T: Clone> Forest<T> {
 
 /// Debug printing.
 #[cfg(feature = "debug-print")]
-impl<T> Forest<T> {
+impl<Id: NodeId, T> Forest<Id, T> {
     /// Returns the pretty-printable proxy object to the node and descendants.
     ///
     /// This requires `debug-print` feature to be enabled.
     #[cfg(feature = "debug-print")]
     #[cfg_attr(feature = "docsrs", doc(cfg(feature = "debug-print")))]
-    pub fn debug_print(&self, id: NodeIdUsize) -> debug_print::DebugPrint<'_, T> {
+    pub fn debug_print(&self, id: NodeIdUsize) -> debug_print::DebugPrint<'_, Id, T> {
         let node = self
             .node(id)
             .expect("[precondition] the node must be alive");
@@ -1858,11 +1863,12 @@ impl<T> Forest<T> {
     }
 }
 
-impl<T> Default for Forest<T> {
+impl<Id: NodeId, T> Default for Forest<Id, T> {
     fn default() -> Self {
         Self {
             hierarchy: Default::default(),
             data: Default::default(),
+            _dummy: Default::default(),
         }
     }
 }
