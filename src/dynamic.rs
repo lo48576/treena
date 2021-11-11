@@ -14,13 +14,59 @@
 //!
 //! ## Node ID
 //!
-//! Each node has internally unique node ID. A node ID is represented by
-//! [`NodeIdUsize`] type.
+//! Each node has internally unique node ID. A node ID type should implement
+//! [`NodeId`] trait. Some ID types are provided from `treena` crate, but users
+//! are encouraged to define dedicated ID types for their usage.
 //!
 //! Note that node IDs are not guaranteed to be unique among forests. In fact,
 //! node IDs will conflict almost certainly in the current
-//! implementation<!-- current: develop branch @2021-09-26 -->.
+//! implementation<!-- current: develop branch @2021-11-12 -->.
 //! You must be careful not to use node IDs for unintended forests.
+//!
+//! Using different node ID types will reduce such accidental unintended use of
+//! node IDs from unrelated forests.
+//!
+//! ### Internal node ID
+//!
+//! A node ID type should be a simple wrapper of an **internal node ID**, which
+//! is also provided from `treena` crate.
+//! Users cannot implement custom internal node ID types, since it will allow
+//! users to craft invalid ID value in meaningless way and it also restricts
+//! internal structure of the internal node ID types.
+//!
+//! For the list of available internal node ID types, see the documentation for
+//! [`InternalNodeId`] trait.
+//!
+//! ### Implementing custom node ID
+//!
+//! Define your custom node ID type as a wrapper (strong typedef) of an internal
+//! node ID type.
+//!
+//! You can use [`impl_dynamic_node_id`][`crate::impl_dynamic_node_id`] macro
+//! to implement [`NodeId`] trait for your type.
+//! It is possible to implement `NodeId` trait manually, but it is boilerplate
+//! and you won't need to do that in almost all cases.
+//!
+//! ```
+//! // Macro for convenience.
+//! use treena::impl_dynamic_node_id;
+//! // `NodeIdUsize` implements `InternalNodeId` trait.
+//! use treena::dynamic::NodeIdUsize;
+//!
+//! // Node ID types should implement `Debug`, `Copy`, `Eq`, and `Hash`.
+//! #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+//! // Use `NodeIdUsize` as an internal node ID type.
+//! pub struct MyNodeId(NodeIdUsize);
+//!
+//! // Arguments are:
+//! //  * custom node ID type,
+//! //  * internal node ID type, and
+//! //  * accessor for the internal node ID field.
+//! //
+//! // You can access the internal node ID as `self.0` (where `self: MyNodeId`),
+//! // so use `0` as an accessor.
+//! impl_dynamic_node_id!(MyNodeId, NodeIdUsize, 0);
+//! ```
 //!
 //! ## Proxy to node objects
 //!
