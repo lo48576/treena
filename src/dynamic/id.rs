@@ -3,8 +3,6 @@
 use core::fmt;
 use core::hash::Hash;
 
-use crate::nonmax::NonMaxUsize;
-
 /// A trait for internal node ID types.
 ///
 /// This trait is implemented for limited types in `treena` crate.
@@ -90,40 +88,49 @@ impl<Id: NodeId> NodeIdExt for Id {
     }
 }
 
-/// Node ID.
-///
-/// The ordering (`PartialOrd` and `Ord`) for node IDs are only provided for
-/// use with some containers who wants ordered key types (such as `BTreeSet`).
-/// Note that it is **not** guaranteed that the ordering of a key has some
-/// relation to the order the node is created.
-/// This also means that the users must use `Debug` formatting only for dumping
-/// the value, but not for manipulating internal integer value extracted by
-/// `Debug` trait.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct NodeIdUsize(NonMaxUsize);
+/// Defines an internal node ID type.
+macro_rules! define_internal_id_type {
+    ($ty:ident, $backend:ty, $intstr:expr) => {
+        /// Node ID that can be used at most
+        #[doc = concat!(" `", $intstr, "::MAX - 1`")]
+        ///  nodes.
+        ///
+        /// The ordering (`PartialOrd` and `Ord`) for node IDs are only provided for
+        /// use with some containers who wants ordered key types (such as `BTreeSet`).
+        /// Note that it is **not** guaranteed that the ordering of a key has some
+        /// relation to the order the node is created.
+        /// This also means that the users must use `Debug` formatting only for dumping
+        /// the value, but not for manipulating internal integer value extracted by
+        /// `Debug` trait.
+        #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+        pub struct $ty($backend);
 
-// Prevent `{:#?}` from printing the value in redundant 3 lines.
-impl fmt::Debug for NodeIdUsize {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "NodeId({:?})", self.0)
-    }
+        // Prevent `{:#?}` from printing the value in redundant 3 lines.
+        impl fmt::Debug for $ty {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                write!(f, "NodeId({:?})", self.0)
+            }
+        }
+
+        impl InternalNodeId for $ty {}
+
+        impl private::SealedInternalNodeId for $ty {
+            #[inline]
+            #[must_use]
+            fn to_usize(self) -> usize {
+                self.0.get()
+            }
+
+            #[inline]
+            #[must_use]
+            fn from_usize(v: usize) -> Option<Self> {
+                <$backend>::new(v).map(Self)
+            }
+        }
+    };
 }
 
-impl InternalNodeId for NodeIdUsize {}
-
-impl private::SealedInternalNodeId for NodeIdUsize {
-    #[inline]
-    #[must_use]
-    fn to_usize(self) -> usize {
-        self.0.get()
-    }
-
-    #[inline]
-    #[must_use]
-    fn from_usize(v: usize) -> Option<Self> {
-        NonMaxUsize::new(v).map(Self)
-    }
-}
+define_internal_id_type!(NodeIdUsize, crate::nonmax::NonMaxUsize, "usize");
 
 /// Private module to provide [`Sealed`][`private::SealedInternalNodeId`] trait.
 mod private {
