@@ -3,10 +3,17 @@
 ## [Unreleased]
 
 * Bump minimum supported rust version to 1.56.
+* Now `Forest` and related types takes a node ID type as a type parameter.
+    + You can implement custom ID types.
 
 ### Changed (breaking)
 
 * Bump minimum supported rust version to 1.56.
+* Now `Forest` and related types takes a node ID type as a type parameter.
+    + You can implement custom ID types.
+    + A forest with the ID type `MyId` and the node data `MyData` is now
+      `Forest<MyId, MyData>` type.
+    + About node ID types and how to implement it, see the documentation for `dynamic` module.
 
 ## [0.0.2]
 
