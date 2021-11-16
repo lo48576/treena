@@ -975,6 +975,7 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     /// assert_eq!(forest.debug_print(root).to_string(), after_create);
     /// # }
     /// ```
+    // This won't panic since `self: Node<'_, _>` guarantees that the anchor node is alive.
     #[inline]
     #[must_use = "newly created node cannot be accessed without the returned node ID"]
     pub fn create(&mut self, data: T, dest: AdoptAs) -> Id {

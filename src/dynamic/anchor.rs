@@ -55,4 +55,19 @@ impl<Id> InsertAs<Id> {
             Self::NextSiblingOf(id) => InsertAs::NextSiblingOf(f(id)),
         }
     }
+
+    /// Returns the anchor.
+    ///
+    /// This is only intended for internal use, so assumes the `Id` implement `Copy`.
+    pub(super) fn to_anchor(self) -> Id
+    where
+        Id: Copy,
+    {
+        match self {
+            Self::FirstChildOf(id) => id,
+            Self::LastChildOf(id) => id,
+            Self::PreviousSiblingOf(id) => id,
+            Self::NextSiblingOf(id) => id,
+        }
+    }
 }
