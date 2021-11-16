@@ -1,6 +1,6 @@
 [package]
 name = "treena"
-version = "0.0.3"
+version = "0.0.4"
 authors = ["YOSHIOKA Takuma <lo48576@hard-wi.red>"]
 edition = "2021"
 rust-version = "1.56"
@@ -26,7 +26,6 @@ rustc-args = ["--cfg", "docsrs"]
 [features]
 default = ["std"]
 
-debug-print = []
 std = []
 
 [dependencies]

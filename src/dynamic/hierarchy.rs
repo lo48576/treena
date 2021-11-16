@@ -48,6 +48,12 @@ impl<Id: InternalNodeId> Hierarchy<Id> {
             .filter(|v| v.is_alive())
     }
 
+    /// Returns true if the ID is valid inside this forest.
+    #[must_use]
+    pub(crate) fn is_valid(&self, id: Id) -> bool {
+        id.to_usize() < self.neighbors.len()
+    }
+
     /// Returns true if the node is alive.
     #[must_use]
     pub(crate) fn is_alive(&self, id: Id) -> bool {

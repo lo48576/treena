@@ -2,6 +2,36 @@
 
 ## [Unreleased]
 
+## [0.0.4]
+
+* Update document about precondition of `Forest::create_insert` method.
+* Remove `debug-print` feature.
+    + Related items are now always available without any additional features.
+* Internal improvements.
+    + Pre-monomorphize methods of `Forest` and related types, in order to reduce
+      code bloat.
+
+### Changed (non-breaking)
+
+* Update document about precondition of `Forest::create_insert` method.
+    + Make it clear that it can panic when the node ID is one from another
+      forest, even when the corresponding node is alive.
+    + Panic message for such case is improved. Previously it was shown as
+      internal consistency error, but now it is shown as precondition violation.
+    + This is only documentation and message refinement. Panic condition is
+      actually not changed.
+* Remove `debug-print` feature.
+    + Related items are now always available without any additional features.
+    + The feature is removed since it pulls no additional dependencies and
+      considered bothersome rather than useful.
+    + Original intention of the flag is to make the feature semi-experimental,
+      since the output format is not guaranteed to be stable. However, many
+      types does not guarantee the stableness of `Display` and `Debug`
+      formatting explicitly, so this is not considered worth doing.
+* Internal improvements.
+    + Pre-monomorphize methods of `Forest` and related types, in order to reduce
+      code bloat.
+
 ## [0.0.3]
 
 * Bump minimum supported rust version to 1.56.
@@ -51,7 +81,8 @@
 
 Initial release.
 
-[Unreleased]: <https://gitlab.com/lo48576/treena/-/compare/v0.0.3...develop>
+[Unreleased]: <https://gitlab.com/lo48576/treena/-/compare/v0.0.4...develop>
+[0.0.4]: <https://gitlab.com/lo48576/treena/-/tags/v0.0.4>
 [0.0.3]: <https://gitlab.com/lo48576/treena/-/tags/v0.0.3>
 [0.0.2]: <https://gitlab.com/lo48576/treena/-/tags/v0.0.2>
 [0.0.1]: <https://gitlab.com/lo48576/treena/-/tags/v0.0.1>
