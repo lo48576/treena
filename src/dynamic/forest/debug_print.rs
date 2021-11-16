@@ -4,9 +4,10 @@ use core::fmt::{self, Write as _};
 
 use alloc::vec::Vec;
 
-use crate::dynamic::forest::traverse::DftEvent;
 use crate::dynamic::forest::Node;
-use crate::dynamic::NodeId;
+use crate::dynamic::hierarchy::traverse::{DepthFirstTraverser, DftEvent};
+use crate::dynamic::hierarchy::Hierarchy;
+use crate::dynamic::{InternalNodeId, NodeId};
 
 /// State for an indent level.
 #[derive(Clone, Copy)]
@@ -212,62 +213,112 @@ impl<'a, Id: NodeId, T> DebugPrint<'a, Id, T> {
 
 impl<'a, Id: NodeId, T: fmt::Display> fmt::Display for DebugPrint<'a, Id, T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut writer = IndentWriter::new(f);
-        let mut nodes = self.node.depth_first_traverse();
+        /// Implementation that depends on `Id::Internal` instead of `NodeId`
+        /// in order to reduce monomorphization and prevent binary bloat.
+        fn inner<InternalId: InternalNodeId, T: fmt::Display>(
+            writer: &mut IndentWriter<'_, '_>,
+            hierarchy: &Hierarchy<InternalId>,
+            data: &[Option<T>],
+            root: InternalId,
+        ) -> fmt::Result {
+            let mut traverser = DepthFirstTraverser::with_toplevel(root, hierarchy);
 
-        // Print the first (root) node.
-        nodes.next();
-        write!(writer, "{}", self.node.data())?;
+            // Print the first (root) node.
+            traverser.next(hierarchy);
+            let root_data = data[root.to_usize()]
+                .as_ref()
+                .expect("[consistency] the node must have a data when alive");
+            write!(writer, "{}", root_data)?;
 
-        // Print descendants.
-        for ev in &mut nodes {
-            let open = match ev {
-                DftEvent::Open(node) => node,
-                DftEvent::Close(_) => {
-                    if writer.close_item().is_ok() {
-                        continue;
-                    } else {
-                        break;
-                    }
-                }
-            };
-            let is_last_sibling = open.next_sibling_id().is_none();
-            writer.open_item(is_last_sibling)?;
-            write!(writer, "{}", open.data())?;
+            // Print descendants.
+            while let Some(id) = prepare_next_node_printing(writer, hierarchy, &mut traverser)? {
+                let node_data = data[id.to_usize()]
+                    .as_ref()
+                    .expect("[consistency] the node must have a data when alive");
+                write!(writer, "{}", node_data)?;
+            }
+            assert!(traverser.next(hierarchy).is_none());
+
+            Ok(())
         }
-        assert!(nodes.next().is_none());
 
-        Ok(())
+        let mut writer = IndentWriter::new(f);
+        let hierarchy = &self.node.forest().hierarchy;
+        let data = &self.node.forest().data;
+        let id = self.node.id().to_internal();
+
+        inner(&mut writer, hierarchy, data, id)
     }
 }
 
 impl<'a, Id: NodeId, T: fmt::Debug> fmt::Debug for DebugPrint<'a, Id, T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut writer = IndentWriter::new(f);
-        let mut nodes = self.node.depth_first_traverse();
+        /// Implementation that depends on `Id::Internal` instead of `NodeId`
+        /// in order to reduce monomorphization and prevent binary bloat.
+        fn inner<InternalId: InternalNodeId, T: fmt::Debug>(
+            writer: &mut IndentWriter<'_, '_>,
+            hierarchy: &Hierarchy<InternalId>,
+            data: &[Option<T>],
+            root: InternalId,
+        ) -> fmt::Result {
+            let mut traverser = DepthFirstTraverser::with_toplevel(root, hierarchy);
 
-        // Print the first (root) node.
-        nodes.next();
-        write!(writer, "{:?}", self.node.data())?;
+            // Print the first (root) node.
+            traverser.next(hierarchy);
+            let root_data = data[root.to_usize()]
+                .as_ref()
+                .expect("[consistency] the node must have a data when alive");
+            write!(writer, "{:?}", root_data)?;
 
-        // Print descendants.
-        for ev in &mut nodes {
-            let open = match ev {
-                DftEvent::Open(node) => node,
-                DftEvent::Close(_) => {
-                    if writer.close_item().is_ok() {
-                        continue;
-                    } else {
-                        break;
-                    }
-                }
-            };
-            let is_last_sibling = open.next_sibling_id().is_none();
-            writer.open_item(is_last_sibling)?;
-            write!(writer, "{:?}", open.data())?;
+            // Print descendants.
+            while let Some(id) = prepare_next_node_printing(writer, hierarchy, &mut traverser)? {
+                let node_data = data[id.to_usize()]
+                    .as_ref()
+                    .expect("[consistency] the node must have a data when alive");
+                write!(writer, "{:?}", node_data)?;
+            }
+            assert!(traverser.next(hierarchy).is_none());
+
+            Ok(())
         }
-        assert!(nodes.next().is_none());
 
-        Ok(())
+        let mut writer = IndentWriter::new(f);
+        let hierarchy = &self.node.forest().hierarchy;
+        let data = &self.node.forest().data;
+        let id = self.node.id().to_internal();
+
+        inner(&mut writer, hierarchy, data, id)
     }
+}
+
+/// Prepares printing of next node.
+///
+/// Internally, this searches next node open and adjust indent level and prefix.
+fn prepare_next_node_printing<Id: InternalNodeId>(
+    writer: &mut IndentWriter<'_, '_>,
+    hierarchy: &Hierarchy<Id>,
+    traverser: &mut DepthFirstTraverser<Id>,
+) -> Result<Option<Id>, fmt::Error> {
+    while let Some(ev) = traverser.next(hierarchy) {
+        let open_id = match ev {
+            DftEvent::Open(id) => id,
+            DftEvent::Close(_) => {
+                if writer.close_item().is_ok() {
+                    continue;
+                } else {
+                    break;
+                }
+            }
+        };
+        let is_last_sibling = hierarchy
+            .neighbors(open_id)
+            .expect("[consistency] the node being traversed must be alive")
+            .next_sibling()
+            .is_none();
+        writer.open_item(is_last_sibling)?;
+
+        return Ok(Some(open_id));
+    }
+
+    Ok(None)
 }
