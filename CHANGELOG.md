@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.0.4]
+
 * Update document about precondition of `Forest::create_insert` method.
 * Remove `debug-print` feature.
     + Related items are now always available without any additional features.
@@ -79,7 +81,8 @@
 
 Initial release.
 
-[Unreleased]: <https://gitlab.com/lo48576/treena/-/compare/v0.0.3...develop>
+[Unreleased]: <https://gitlab.com/lo48576/treena/-/compare/v0.0.4...develop>
+[0.0.4]: <https://gitlab.com/lo48576/treena/-/tags/v0.0.4>
 [0.0.3]: <https://gitlab.com/lo48576/treena/-/tags/v0.0.3>
 [0.0.2]: <https://gitlab.com/lo48576/treena/-/tags/v0.0.2>
 [0.0.1]: <https://gitlab.com/lo48576/treena/-/tags/v0.0.1>
