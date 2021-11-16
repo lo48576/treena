@@ -2,12 +2,20 @@
 
 ## [Unreleased]
 
+* Update document about precondition of `Forest::create_insert` method.
 * Internal improvements.
     + Pre-monomorphize methods of `Forest` and related types, in order to reduce
       code bloat.
 
 ### Changed (non-breaking)
 
+* Update document about precondition of `Forest::create_insert` method.
+    + Make it clear that it can panic when the node ID is one from another
+      forest, even when the corresponding node is alive.
+    + Panic message for such case is improved. Previously it was shown as
+      internal consistency error, but now it is shown as precondition violation.
+    + This is only documentation and message refinement. Panic condition is
+      actually not changed.
 * Internal improvements.
     + Pre-monomorphize methods of `Forest` and related types, in order to reduce
       code bloat.
