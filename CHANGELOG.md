@@ -11,6 +11,17 @@
     + Pre-monomorphize methods of `Forest` and related types, in order to reduce
       code bloat.
 
+### Changed (breaking)
+
+* Remove `debug-print` feature.
+    + Related items are now always available without any additional features.
+    + The feature is removed since it pulls no additional dependencies and
+      considered bothersome rather than useful.
+    + Original intention of the flag is to make the feature semi-experimental,
+      since the output format is not guaranteed to be stable. However, many
+      types does not guarantee the stableness of `Display` and `Debug`
+      formatting explicitly, so this is not considered worth doing.
+
 ### Changed (non-breaking)
 
 * Update document about precondition of `Forest::create_insert` method.
@@ -20,14 +31,6 @@
       internal consistency error, but now it is shown as precondition violation.
     + This is only documentation and message refinement. Panic condition is
       actually not changed.
-* Remove `debug-print` feature.
-    + Related items are now always available without any additional features.
-    + The feature is removed since it pulls no additional dependencies and
-      considered bothersome rather than useful.
-    + Original intention of the flag is to make the feature semi-experimental,
-      since the output format is not guaranteed to be stable. However, many
-      types does not guarantee the stableness of `Display` and `Debug`
-      formatting explicitly, so this is not considered worth doing.
 * Internal improvements.
     + Pre-monomorphize methods of `Forest` and related types, in order to reduce
       code bloat.
