@@ -351,7 +351,8 @@ impl<Id: NodeId, T> Forest<Id, T> {
     ///
     /// # Panics
     ///
-    /// Panics if the node (the anchor of the destination) is not alive.
+    /// * Panics if the node (the anchor of the destination) is not alive.
+    /// * Panics if the node (the anchor of the destination) is not from this forest.
     #[inline]
     #[must_use = "newly created node cannot be accessed without the returned node ID"]
     pub fn create_insert(&mut self, data: T, dest: InsertAs<Id>) -> Id {
@@ -1972,11 +1973,21 @@ fn create_insert_momo<Id: InternalNodeId, T>(
     data: T,
     dest: InsertAs<Id>,
 ) -> Id {
+    assert!(
+        hierarchy.is_valid(dest.to_anchor()),
+        "[precondition] the anchor must be valid for this forest"
+    );
     let new_id = hierarchy.create_root();
     storage.push(Some(data));
-    hierarchy
-        .insert(new_id, dest)
-        .expect("[consistency] newly created node is independent from the destination");
+    // This insert must not fail if the anchor of `dest` is alive and from the forest.
+    // If the anchor is not alive, `insert()` itself panics.
+    //
+    // If the anchor is from other forest but accidentally valid as the node ID
+    // as this forest, `insert()` could return `Err(_)`.
+    hierarchy.insert(new_id, dest).expect(
+        "[precondition] newly created node is independent from the destination \
+         and the anchor has been valid before the new node is created",
+    );
 
     new_id
 }
