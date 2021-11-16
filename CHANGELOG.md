@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+* Internal improvements.
+    + Pre-monomorphize methods of `Forest` and related types, in order to reduce
+      code bloat.
+
+### Changed (non-breaking)
+
+* Internal improvements.
+    + Pre-monomorphize methods of `Forest` and related types, in order to reduce
+      code bloat.
+
 ## [0.0.3]
 
 * Bump minimum supported rust version to 1.56.

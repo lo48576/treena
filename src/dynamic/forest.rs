@@ -10,9 +10,11 @@ use core::fmt;
 
 use alloc::vec::Vec;
 
-use crate::dynamic::hierarchy::traverse::{DftEvent, SafeModeDepthFirstTraverser};
+use crate::dynamic::hierarchy::traverse::{
+    DepthFirstTraverser, DftEvent, SafeModeDepthFirstTraverser,
+};
 use crate::dynamic::hierarchy::{Hierarchy, Neighbors};
-use crate::dynamic::{InsertAs, NodeId, NodeIdExt};
+use crate::dynamic::{InsertAs, InternalNodeId, NodeId, NodeIdExt};
 
 pub use self::builder::TreeBuilder;
 #[cfg(any(feature = "debug-print"))]
@@ -353,11 +355,12 @@ impl<Id: NodeId, T> Forest<Id, T> {
     #[inline]
     #[must_use = "newly created node cannot be accessed without the returned node ID"]
     pub fn create_insert(&mut self, data: T, dest: InsertAs<Id>) -> Id {
-        let new_id = self.create_root(data);
-        self.insert(new_id, dest)
-            .expect("[consistency] newly created node is independent from the destination");
-
-        new_id
+        Id::from_internal(create_insert_momo(
+            &mut self.hierarchy,
+            &mut self.data,
+            data,
+            dest.map(Id::to_internal),
+        ))
     }
 }
 
@@ -779,42 +782,53 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// assert_eq!(removed_data, &["1-1-0", "1-1-1", "1-1-2", "1-1"]);
     /// # }
     /// ```
-    pub fn remove_hooked_panic_safe<F: FnMut(T)>(&mut self, node: Id, mut f: F) {
-        if !self.is_alive(node) {
-            return;
-        }
-        self.detach(node);
+    pub fn remove_hooked_panic_safe<F: FnMut(T)>(&mut self, node: Id, f: F) {
+        /// Implementation that depends on `Id::Internal` instead of `NodeId`
+        /// in order to reduce monomorphization and prevent binary bloat.
+        fn inner<InternalId: InternalNodeId, T, F: FnMut(T)>(
+            hierarchy: &mut Hierarchy<InternalId>,
+            data: &mut Vec<Option<T>>,
+            node: InternalId,
+            mut f: F,
+        ) {
+            if !hierarchy.is_alive(node) {
+                return;
+            }
+            hierarchy.detach(node);
 
-        let mut traverser = SafeModeDepthFirstTraverser::new(node.to_internal(), &self.hierarchy);
-        while let Some(ev) = traverser.next(&self.hierarchy) {
-            let id = match ev {
-                DftEvent::Open(_) => continue,
-                DftEvent::Close(id) => Id::from_internal(id),
-            };
+            let mut traverser = SafeModeDepthFirstTraverser::new(node, hierarchy);
+            while let Some(ev) = traverser.next(hierarchy) {
+                let id = match ev {
+                    DftEvent::Open(_) => continue,
+                    DftEvent::Close(id) => id,
+                };
 
-            // Detach the leaf node.
-            debug_assert!(
-                self.neighbors(id)
-                    .expect("[consistency] the current node must be alive here")
-                    .first_child()
-                    .is_none(),
-                "[consistency] the node must be the leaf"
-            );
-            self.detach(id);
-            let nbs = self
-                .hierarchy
-                .neighbors_mut(id.to_internal())
-                .expect("[consistency] the current node must be alive here");
-            debug_assert!(
-                nbs.is_alone(),
-                "[consistency] the detached leaf node must be alone"
-            );
-            nbs.make_removed();
-            let data = self.data[id.to_usize()]
-                .take()
-                .expect("[consistency] the node must have an associated data");
-            f(data);
+                // Detach the leaf node.
+                debug_assert!(
+                    hierarchy
+                        .neighbors(id)
+                        .expect("[consistency] the current node must be alive here")
+                        .first_child()
+                        .is_none(),
+                    "[consistency] the node must be the leaf"
+                );
+                hierarchy.detach(id);
+                let nbs = hierarchy
+                    .neighbors_mut(id)
+                    .expect("[consistency] the current node must be alive here");
+                debug_assert!(
+                    nbs.is_alone(),
+                    "[consistency] the detached leaf node must be alone"
+                );
+                nbs.make_removed();
+                let elem = data[id.to_usize()]
+                    .take()
+                    .expect("[consistency] the node must have an associated data");
+                f(elem);
+            }
         }
+
+        inner(&mut self.hierarchy, &mut self.data, node.to_internal(), f)
     }
 
     /// Removes the subtree from the forest.
@@ -886,32 +900,41 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// assert_eq!(removed_data, &["1-1-0", "1-1-1", "1-1-2", "1-1"]);
     /// # }
     /// ```
-    pub fn remove_hooked<F: FnMut(T)>(&mut self, node: Id, mut f: F) {
-        if !self.is_alive(node) {
-            return;
-        }
-        self.detach(node);
+    pub fn remove_hooked<F: FnMut(T)>(&mut self, node: Id, f: F) {
+        /// Implementation that depends on `Id::Internal` instead of `NodeId`
+        /// in order to reduce monomorphization and prevent binary bloat.
+        fn inner<InternalId: InternalNodeId, T, F: FnMut(T)>(
+            hierarchy: &mut Hierarchy<InternalId>,
+            data: &mut Vec<Option<T>>,
+            node: InternalId,
+            mut f: F,
+        ) {
+            if !hierarchy.is_alive(node) {
+                return;
+            }
+            hierarchy.detach(node);
 
-        let mut traverser = SafeModeDepthFirstTraverser::new(node.to_internal(), &self.hierarchy);
-        while let Some(ev) = traverser.next(&self.hierarchy) {
-            let id = match ev {
-                DftEvent::Open(_) => continue,
-                DftEvent::Close(id) => id,
-            };
+            let mut traverser = SafeModeDepthFirstTraverser::new(node, hierarchy);
+            while let Some(ev) = traverser.next(hierarchy) {
+                let id = match ev {
+                    DftEvent::Open(_) => continue,
+                    DftEvent::Close(id) => id,
+                };
 
-            // Break the node. The tree will be temporarily inconsistent.
-            let nbs = self
-                .hierarchy
-                .neighbors_mut(id)
-                .expect("[consistency] the current node must be alive here");
-            nbs.force_make_removed();
-            let data = self.data[id.to_usize()]
-                .take()
-                .expect("[consistency] the node must have an associated data");
-            f(data);
+                // Break the node. The tree will be temporarily inconsistent.
+                let nbs = hierarchy
+                    .neighbors_mut(id)
+                    .expect("[consistency] the current node must be alive here");
+                nbs.force_make_removed();
+                let data = data[id.to_usize()]
+                    .take()
+                    .expect("[consistency] the node must have an associated data");
+                f(data);
+            }
+            // At this point, all nodes under the `node` are removed.
+            // Now the forest must be totally consistent.
         }
-        // At this point, all nodes under the `node` are removed.
-        // Now the forest must be totally consistent.
+        inner(&mut self.hierarchy, &mut self.data, node.to_internal(), f);
     }
 
     /// Removes the subtree from the forest.
@@ -1676,49 +1699,74 @@ impl<Id: NodeId, T: Clone> Forest<Id, T> {
     where
         F: FnMut(Id, Id),
     {
+        /// Clones the next node.
+        ///
+        /// Returns `Option<SourceId>`.
+        ///
+        /// Implementation that depends on `Id::Internal` instead of `NodeId`
+        /// in order to reduce monomorphization and prevent binary bloat.
+        fn clone_next_node<InternalId: InternalNodeId, T: Clone>(
+            hierarchy: &mut Hierarchy<InternalId>,
+            data: &mut Vec<Option<T>>,
+            current_dest: &mut InternalId,
+            traverser: &mut SafeModeDepthFirstTraverser<InternalId>,
+        ) -> Option<InternalId> {
+            while let Some(ev) = traverser.next(hierarchy) {
+                match ev {
+                    DftEvent::Open(src_id) => {
+                        let node_data = data
+                            .get(src_id.to_usize())
+                            .cloned()
+                            .expect("[consistency] the node being traversed must be alive")
+                            .expect("[consistency] the node being traversed must be alive");
+                        *current_dest = create_insert_momo(
+                            hierarchy,
+                            data,
+                            node_data,
+                            InsertAs::LastChildOf(*current_dest),
+                        );
+                        return Some(src_id);
+                    }
+                    DftEvent::Close(_) => {
+                        let parent = hierarchy
+                            .neighbors(*current_dest)
+                            .expect("[consistency] the node being created must be alive")
+                            .parent();
+                        *current_dest = match parent {
+                            Some(id) => id,
+                            None => return None,
+                        }
+                    }
+                }
+            }
+            unreachable!("[consistency] traversal must end with the closing of the root node");
+        }
+
         let root_data = self
             .data(src_id)
             .expect("[consistency] the node must be alive")
             .clone();
         let root_id = self.create_root(root_data);
-        let mut current_dest = root_id;
-        add_mapping(src_id, current_dest);
+        add_mapping(src_id, root_id);
         let mut traverser = SafeModeDepthFirstTraverser::new(src_id.to_internal(), &self.hierarchy);
 
         // Skip the open event of the root node.
         let _ = traverser.next(&self.hierarchy);
 
-        while let Some(ev) = traverser.next(&self.hierarchy) {
-            match ev {
-                DftEvent::Open(src_id) => {
-                    let src_id = Id::from_internal(src_id);
-                    let data = self
-                        .data(src_id)
-                        .expect("[consistency] the node being traversed must be alive")
-                        .clone();
-                    current_dest = self.create_insert(data, InsertAs::LastChildOf(current_dest));
-                    add_mapping(src_id, current_dest);
-                }
-                DftEvent::Close(_) => {
-                    let parent = self
-                        .node(current_dest)
-                        .expect("[consistency] the node being created must be alive")
-                        .parent_id();
-                    current_dest = match parent {
-                        Some(id) => id,
-                        None => {
-                            assert_eq!(
-                                current_dest, root_id,
-                                "[consistency] current node must be the root if it has no parent"
-                            );
-                            break;
-                        }
-                    }
-                }
-            }
+        // Clone descendants.
+        let mut current_dest = root_id.to_internal();
+        while let Some(src_id) = clone_next_node(
+            &mut self.hierarchy,
+            &mut self.data,
+            &mut current_dest,
+            &mut traverser,
+        ) {
+            add_mapping(Id::from_internal(src_id), Id::from_internal(current_dest));
         }
+
         assert_eq!(
-            current_dest, root_id,
+            Id::from_internal(current_dest),
+            root_id,
             "[consistency] all nodes including the root must have been closed"
         );
 
@@ -1796,40 +1844,92 @@ impl<Id: NodeId, T: Clone> Forest<Id, T> {
     where
         F: FnMut(Id, Id),
     {
-        use crate::dynamic::forest::traverse::DftEvent;
-
-        let mut events = src_root.depth_first_traverse();
-        let root_data = match events.next() {
-            None => unreachable!(
-                "[validity] iterator must emit at least two events since it has the root node"
-            ),
-            Some(DftEvent::Open(node)) => node.data().clone(),
-            Some(DftEvent::Close(_)) => {
-                unreachable!("[validity] `DepthFirstTraverse` must emit the open event first")
-            }
-        };
-        let mut builder = TreeBuilder::new(self, root_data);
-        let root_id = builder.root_id();
-        add_mapping(src_root.id(), root_id);
-
-        for ev in events {
-            match ev {
-                DftEvent::Open(node) => {
-                    let data = node.data().clone();
-                    builder.child(data);
-                    add_mapping(node.id(), builder.current_id());
+        /// Clones the next node.
+        ///
+        /// Returns `Option<SourceId>`.
+        ///
+        /// Implementation that depends on `Id::Internal` instead of `NodeId`
+        /// in order to reduce monomorphization and prevent binary bloat.
+        fn clone_next_node<InternalId: InternalNodeId, T: Clone>(
+            hierarchy_dest: &mut Hierarchy<InternalId>,
+            data_dest: &mut Vec<Option<T>>,
+            current_dest: &mut InternalId,
+            hierarchy_src: &Hierarchy<InternalId>,
+            src_traverser: &mut DepthFirstTraverser<InternalId>,
+            data_src: &[Option<T>],
+        ) -> Option<InternalId> {
+            while let Some(ev) = src_traverser.next(hierarchy_src) {
+                match ev {
+                    DftEvent::Open(src_id) => {
+                        let node_data = data_src
+                            .get(src_id.to_usize())
+                            .cloned()
+                            .expect("[consistency] the node being traversed must be alive")
+                            .expect("[consistency] the node being traversed must be alive");
+                        *current_dest = create_insert_momo(
+                            hierarchy_dest,
+                            data_dest,
+                            node_data,
+                            InsertAs::LastChildOf(*current_dest),
+                        );
+                        return Some(src_id);
+                    }
+                    DftEvent::Close(_) => {
+                        match hierarchy_dest
+                            .neighbors(*current_dest)
+                            .expect("[consistency] the node must be created recently and alive")
+                            .parent()
+                        {
+                            Some(parent) => {
+                                *current_dest = parent;
+                                continue;
+                            }
+                            None => {
+                                // Closing root node.
+                                return None;
+                            }
+                        }
+                    }
                 }
-                DftEvent::Close(_) => {
-                    // When `builder.try_parent().is_none()` is true, it
-                    // means that the node being closed is the root node of the
-                    // new tree. It is not an error and no action needed here,
-                    // since no more events will be provided from `events`.
-                    let _ = builder.try_parent();
-                }
             }
+            unreachable!("[consistency] traversal must end with the closing of the root node");
         }
 
-        root_id
+        let root_data = src_root.data().clone();
+        let root_dest_id = self.create_root(root_data);
+        let hierarchy_src = &src_root.forest().hierarchy;
+        add_mapping(src_root.id(), root_dest_id);
+        let mut src_traverser =
+            DepthFirstTraverser::with_toplevel(src_root.id().to_internal(), hierarchy_src);
+
+        // Skip the open event of the root node.
+        let _ = src_traverser.next(hierarchy_src);
+
+        // Clone descendants.
+        let mut current_dest = root_dest_id.to_internal();
+        while let Some(src_id) = clone_next_node(
+            &mut self.hierarchy,
+            &mut self.data,
+            &mut current_dest,
+            hierarchy_src,
+            &mut src_traverser,
+            &src_root.forest().data,
+        ) {
+            add_mapping(Id::from_internal(src_id), Id::from_internal(current_dest));
+        }
+
+        assert_eq!(
+            Id::from_internal(current_dest),
+            root_dest_id,
+            "[consistency] traversal must end with the closing of the destination root node"
+        );
+        assert_eq!(
+            src_traverser.next(hierarchy_src),
+            None,
+            "[consistency] traversal must also end with the closing of the source root node"
+        );
+
+        root_dest_id
     }
 }
 
@@ -1858,6 +1958,29 @@ impl<Id: NodeId, T> Default for Forest<Id, T> {
     }
 }
 
+/// Creates a node and inserts it to the target position.
+///
+/// For the spec and limitations, see [`Forest::create_insert`].
+///
+/// Implementation that depends on `Id::Internal` instead of `NodeId`
+/// in order to reduce monomorphization and prevent binary bloat.
+// To avoid duplicate document that is hard to maintain, specs are described
+// in the doc comments for `Forest::create_insert`.
+fn create_insert_momo<Id: InternalNodeId, T>(
+    hierarchy: &mut Hierarchy<Id>,
+    storage: &mut Vec<Option<T>>,
+    data: T,
+    dest: InsertAs<Id>,
+) -> Id {
+    let new_id = hierarchy.create_root();
+    storage.push(Some(data));
+    hierarchy
+        .insert(new_id, dest)
+        .expect("[consistency] newly created node is independent from the destination");
+
+    new_id
+}
+
 /// Structure inconsistency error.
 #[derive(Debug, Clone, Copy)]
 pub enum StructureError {
@@ -1882,3 +2005,87 @@ impl fmt::Display for StructureError {
 
 #[cfg(feature = "std")]
 impl std::error::Error for StructureError {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Ensures that functions defined in functions are monomorphized
+    /// independently without considering outer function's type parameters.
+    ///
+    /// This is in fact testing compiler's behavior, rather than the
+    /// implementation of this crate.
+    ///
+    /// This fact is useful to reduce monomorphization.
+    ///
+    /// `Forest<Id, T>` is a pair of `Hierarchy<Id::Internal>` and `Vec<T>`, and
+    /// most of the operations provided from `Forest<Id, T>` actually depends on
+    /// `T` and `Id::Internal`, not `Id`.
+    /// `Id` is only necessary to make parameter types and return types
+    /// different, and the internal logic is almost identical when
+    /// `Id::Internal` is the same.
+    ///
+    /// For example, internal implementantion of `Forest::<Id0, T>::remove` and
+    /// `Forest::<Id1, T>::remove` can be almost the same when `Id0::Internal`
+    /// and `Id1::Internal` are the same type, except the part that converts
+    /// `Id0` or `Id1` into `_::Internal` type value.
+    #[test]
+    fn ensure_inner_function_is_monomorphized() {
+        use core::any::Any;
+
+        use crate::dynamic::{InternalNodeId, NodeIdUsize};
+        use crate::impl_dynamic_node_id;
+
+        // Dummy struct mimicking `Forest<Id: NdoeId, T>`.
+        struct MyContainer<Id: NodeId, T> {
+            _ids: Vec<Id::Internal>,
+            _values: Vec<T>,
+        }
+        impl<Id: NodeId, T> Default for MyContainer<Id, T> {
+            fn default() -> Self {
+                Self {
+                    _ids: Default::default(),
+                    _values: Default::default(),
+                }
+            }
+        }
+
+        impl<Id: NodeId, T> MyContainer<Id, T> {
+            fn new() -> Self {
+                Self::default()
+            }
+
+            fn inner_fn_addr(&self) -> fn(Id::Internal) -> () {
+                fn inner<I: InternalNodeId>(_: I) {}
+
+                inner::<Id::Internal> as fn(Id::Internal) -> ()
+            }
+        }
+
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+        struct MyId0(NodeIdUsize);
+        impl_dynamic_node_id!(MyId0, NodeIdUsize, 0);
+
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+        struct MyId1(NodeIdUsize);
+        impl_dynamic_node_id!(MyId1, NodeIdUsize, 0);
+
+        let container0 = MyContainer::<MyId0, usize>::new();
+        let container1 = MyContainer::<MyId1, usize>::new();
+
+        let outer_addr0 = MyContainer::<MyId0, usize>::inner_fn_addr as fn(_) -> _;
+        let outer_addr1 = MyContainer::<MyId1, usize>::inner_fn_addr as fn(_) -> _;
+
+        assert_ne!(
+            outer_addr0.type_id(),
+            outer_addr1.type_id(),
+            "outer functions must have different types"
+        );
+        assert_eq!(
+            container0.inner_fn_addr(),
+            container1.inner_fn_addr(),
+            "inner functions must have the same address \
+             while the outer functions are different"
+        );
+    }
+}
