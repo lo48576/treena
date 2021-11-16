@@ -1,7 +1,6 @@
 //! Forest.
 
 mod builder;
-#[cfg(any(feature = "debug-print"))]
 mod debug_print;
 mod node;
 pub(crate) mod traverse;
@@ -17,7 +16,6 @@ use crate::dynamic::hierarchy::{Hierarchy, Neighbors};
 use crate::dynamic::{InsertAs, InternalNodeId, NodeId, NodeIdExt};
 
 pub use self::builder::TreeBuilder;
-#[cfg(any(feature = "debug-print"))]
 pub use self::debug_print::DebugPrint;
 pub use self::node::{Node, NodeMut};
 
@@ -390,7 +388,6 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// some other node.
     ///
     /// ```
-    /// # #[cfg(feature = "debug-print")] {
     /// use treena::dynamic::InsertAs;
     ///
     /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
@@ -414,7 +411,6 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// |   |-- 1-1
     /// |   `-- 1-2
     /// `-- 2"#;
-    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
     /// assert_eq!(forest.debug_print(root).to_string(), before);
     ///
     /// // Create a new node.
@@ -431,14 +427,12 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// |-- new
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_insert);
-    /// # }
     /// ```
     ///
     /// [`InsertAs::PreviousSiblingOf`] inserts the node as the previous sibling
     /// of some other node.
     ///
     /// ```
-    /// # #[cfg(feature = "debug-print")] {
     /// use treena::dynamic::InsertAs;
     ///
     /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
@@ -462,7 +456,6 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// |   |-- 1-1
     /// |   `-- 1-2
     /// `-- 2"#;
-    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
     /// assert_eq!(forest.debug_print(root).to_string(), before);
     ///
     /// // Create a new node.
@@ -479,14 +472,12 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// |   `-- 1-2
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_insert);
-    /// # }
     /// ```
     ///
     /// [`InsertAs::FirstChildOf`] inserts the node as the first child of some
     /// other node.
     ///
     /// ```
-    /// # #[cfg(feature = "debug-print")] {
     /// use treena::dynamic::InsertAs;
     ///
     /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
@@ -510,7 +501,6 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// |   |-- 1-1
     /// |   `-- 1-2
     /// `-- 2"#;
-    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
     /// assert_eq!(forest.debug_print(root).to_string(), before);
     ///
     /// // Create a new node.
@@ -527,14 +517,12 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// |   `-- 1-2
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_insert);
-    /// # }
     /// ```
     ///
     /// [`InsertAs::LastChildOf`] inserts the node as the last child of some
     /// other node.
     ///
     /// ```
-    /// # #[cfg(feature = "debug-print")] {
     /// use treena::dynamic::InsertAs;
     ///
     /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
@@ -558,7 +546,6 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// |   |-- 1-1
     /// |   `-- 1-2
     /// `-- 2"#;
-    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
     /// assert_eq!(forest.debug_print(root).to_string(), before);
     ///
     /// // Create a new node.
@@ -575,7 +562,6 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// |   `-- new
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_insert);
-    /// # }
     /// ```
     #[inline]
     pub fn insert(&mut self, node: Id, dest: InsertAs<Id>) -> Result<(), StructureError> {
@@ -601,7 +587,6 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// # Examples
     ///
     /// ```
-    /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
     /// # let mut forest = Forest::<NodeIdUsize, _>::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
@@ -623,7 +608,6 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// |   |-- 1-1
     /// |   `-- 1-2
     /// `-- 2"#;
-    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
     /// assert_eq!(forest.debug_print(root).to_string(), before);
     ///
     /// // Detach the node "1".
@@ -638,7 +622,6 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// `-- 1-2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_detach_root);
     /// assert_eq!(forest.debug_print(child_1).to_string(), after_detach_child_1);
-    /// # }
     /// ```
     #[inline]
     pub fn detach(&mut self, node: Id) {
@@ -664,7 +647,6 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// # Examples
     ///
     /// ```
-    /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
     /// # let mut forest = Forest::<NodeIdUsize, _>::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
@@ -686,7 +668,6 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// |   |-- 1-1
     /// |   `-- 1-2
     /// `-- 2"#;
-    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
     /// assert_eq!(forest.debug_print(root).to_string(), before);
     ///
     /// // Detach the single node "1".
@@ -701,7 +682,6 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// let after_detach_child_1 = "1";
     /// assert_eq!(forest.debug_print(root).to_string(), after_detach_root);
     /// assert_eq!(forest.debug_print(child_1).to_string(), after_detach_child_1);
-    /// # }
     /// ```
     #[inline]
     pub fn detach_single(&mut self, node: Id) -> Result<(), StructureError> {
@@ -734,7 +714,6 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// # Examples
     ///
     /// ```
-    /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
     /// # let mut forest = Forest::<NodeIdUsize, _>::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
@@ -763,7 +742,6 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// |   |   `-- 1-1-2
     /// |   `-- 1-2
     /// `-- 2"#;
-    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
     /// assert_eq!(forest.debug_print(root).to_string(), before);
     ///
     /// let mut removed_data = Vec::new();
@@ -781,7 +759,6 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_remove);
     /// assert_eq!(removed_data, &["1-1-0", "1-1-1", "1-1-2", "1-1"]);
-    /// # }
     /// ```
     pub fn remove_hooked_panic_safe<F: FnMut(T)>(&mut self, node: Id, f: F) {
         /// Implementation that depends on `Id::Internal` instead of `NodeId`
@@ -852,7 +829,6 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// # Examples
     ///
     /// ```
-    /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
     /// # let mut forest = Forest::<NodeIdUsize, _>::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
@@ -881,7 +857,6 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// |   |   `-- 1-1-2
     /// |   `-- 1-2
     /// `-- 2"#;
-    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
     /// assert_eq!(forest.debug_print(root).to_string(), before);
     ///
     /// let mut removed_data = Vec::new();
@@ -899,7 +874,6 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_remove);
     /// assert_eq!(removed_data, &["1-1-0", "1-1-1", "1-1-2", "1-1"]);
-    /// # }
     /// ```
     pub fn remove_hooked<F: FnMut(T)>(&mut self, node: Id, f: F) {
         /// Implementation that depends on `Id::Internal` instead of `NodeId`
@@ -953,7 +927,6 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// # Examples
     ///
     /// ```
-    /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
     /// # let mut forest = Forest::<NodeIdUsize, _>::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
@@ -982,7 +955,6 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// |   |   `-- 1-1-2
     /// |   `-- 1-2
     /// `-- 2"#;
-    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
     /// assert_eq!(forest.debug_print(root).to_string(), before);
     ///
     /// // Remove "1-1" and its descendant.
@@ -997,7 +969,6 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// |   `-- 1-2
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_remove);
-    /// # }
     /// ```
     #[inline]
     pub fn remove(&mut self, node: Id) {
@@ -1536,7 +1507,6 @@ impl<Id: NodeId, T: Clone> Forest<Id, T> {
     /// # Examples
     ///
     /// ```
-    /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
     /// # let mut forest = Forest::<NodeIdUsize, _>::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
@@ -1558,7 +1528,6 @@ impl<Id: NodeId, T: Clone> Forest<Id, T> {
     /// |   |-- 1-1
     /// |   `-- 1-2
     /// `-- 2"#;
-    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
     /// assert_eq!(forest.debug_print(root).to_string(), before);
     ///
     /// // Clone a tree.
@@ -1573,7 +1542,6 @@ impl<Id: NodeId, T: Clone> Forest<Id, T> {
     ///     forest.node(cloned).expect("must be alive").parent_id().is_none(),
     ///     "The new node is a root node of an independent tree and has no parent"
     /// );
-    /// # }
     /// ```
     #[must_use = "newly created node cannot be accessed without the returned node ID"]
     pub fn clone_local_tree(&mut self, src_id: Id) -> Id {
@@ -1590,7 +1558,6 @@ impl<Id: NodeId, T: Clone> Forest<Id, T> {
     /// # Examples
     ///
     /// ```
-    /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
     /// # let mut forest_src = Forest::<NodeIdUsize, _>::new();
     /// # let mut builder = TreeBuilder::new(&mut forest_src, "root");
@@ -1612,7 +1579,6 @@ impl<Id: NodeId, T: Clone> Forest<Id, T> {
     /// |   |-- 1-1
     /// |   `-- 1-2
     /// `-- 2"#;
-    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
     /// assert_eq!(forest_src.debug_print(root).to_string(), before);
     ///
     /// // Destination forest.
@@ -1631,7 +1597,6 @@ impl<Id: NodeId, T: Clone> Forest<Id, T> {
     ///     forest_dest.node(cloned).expect("must be alive").parent_id().is_none(),
     ///     "The new node is a root node of an independent tree and has no parent"
     /// );
-    /// # }
     /// ```
     #[must_use = "newly created node cannot be accessed without the returned node ID"]
     pub fn clone_foreign_tree(&mut self, src_root: Node<'_, Id, T>) -> Id {
@@ -1647,7 +1612,6 @@ impl<Id: NodeId, T: Clone> Forest<Id, T> {
     /// # Examples
     ///
     /// ```
-    /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
     /// # let mut forest = Forest::<NodeIdUsize, _>::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
@@ -1669,7 +1633,6 @@ impl<Id: NodeId, T: Clone> Forest<Id, T> {
     /// |   |-- 1-1
     /// |   `-- 1-2
     /// `-- 2"#;
-    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
     /// assert_eq!(forest.debug_print(root).to_string(), before);
     ///
     /// // Clone a tree.
@@ -1693,7 +1656,6 @@ impl<Id: NodeId, T: Clone> Forest<Id, T> {
     /// for (src, dest) in mapping {
     ///     assert_eq!(forest.data(src), forest.data(dest));
     /// }
-    /// # }
     /// ```
     #[must_use = "newly created node cannot be accessed without the returned node ID"]
     pub fn clone_local_tree_with_id_mapping<F>(&mut self, src_id: Id, mut add_mapping: F) -> Id
@@ -1784,7 +1746,6 @@ impl<Id: NodeId, T: Clone> Forest<Id, T> {
     /// # Examples
     ///
     /// ```
-    /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
     /// # let mut forest_src = Forest::<NodeIdUsize, _>::new();
     /// # let mut builder = TreeBuilder::new(&mut forest_src, "root");
@@ -1806,7 +1767,6 @@ impl<Id: NodeId, T: Clone> Forest<Id, T> {
     /// |   |-- 1-1
     /// |   `-- 1-2
     /// `-- 2"#;
-    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
     /// assert_eq!(forest_src.debug_print(root).to_string(), before);
     ///
     /// // Destination forest.
@@ -1834,7 +1794,6 @@ impl<Id: NodeId, T: Clone> Forest<Id, T> {
     /// for (src, dest) in mapping {
     ///     assert_eq!(forest_src.data(src), forest_dest.data(dest));
     /// }
-    /// # }
     /// ```
     #[must_use = "newly created node cannot be accessed without the returned node ID"]
     pub fn clone_foreign_tree_with_id_mapping<F>(
@@ -1935,13 +1894,8 @@ impl<Id: NodeId, T: Clone> Forest<Id, T> {
 }
 
 /// Debug printing.
-#[cfg(feature = "debug-print")]
 impl<Id: NodeId, T> Forest<Id, T> {
     /// Returns the pretty-printable proxy object to the node and descendants.
-    ///
-    /// This requires `debug-print` feature to be enabled.
-    #[cfg(feature = "debug-print")]
-    #[cfg_attr(feature = "docsrs", doc(cfg(feature = "debug-print")))]
     pub fn debug_print(&self, id: Id) -> debug_print::DebugPrint<'_, Id, T> {
         let node = self
             .node(id)

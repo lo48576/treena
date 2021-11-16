@@ -1,6 +1,5 @@
 //! Node.
 
-#[cfg(feature = "debug-print")]
 use crate::dynamic::forest::debug_print::DebugPrint;
 use crate::dynamic::forest::traverse::{
     AllocatingBreadthFirstTraverse, Ancestors, BreadthFirstTraverse, DepthFirstTraverse,
@@ -661,10 +660,6 @@ impl<'a, Id: NodeId, T> Node<'a, Id, T> {
 /// Debug printing.
 impl<'a, Id: NodeId, T> Node<'a, Id, T> {
     /// Returns the pretty-printable proxy object to the node and descendants.
-    ///
-    /// This requires `debug-print` feature to be enabled.
-    #[cfg(feature = "debug-print")]
-    #[cfg_attr(feature = "docsrs", doc(cfg(feature = "debug-print")))]
     pub fn debug_print(&self) -> DebugPrint<'_, Id, T> {
         DebugPrint::new(*self)
     }
@@ -785,7 +780,6 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     /// Creating the first child by [`AdoptAs::FirstChild`]:
     ///
     /// ```
-    /// # #[cfg(feature = "debug-print")] {
     /// use treena::dynamic::AdoptAs;
     ///
     /// # use treena::dynamic::{DftEvent, Forest, NodeIdUsize, TreeBuilder};
@@ -809,7 +803,6 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     /// |   |-- 1-1
     /// |   `-- 1-2
     /// `-- 2"#;
-    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
     /// assert_eq!(forest.debug_print(root).to_string(), before);
     ///
     /// let mut node = forest.node_mut(child_1)
@@ -827,13 +820,11 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     /// |   `-- 1-2
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_create);
-    /// # }
     /// ```
     ///
     /// Creating the last child by [`AdoptAs::LastChild`]:
     ///
     /// ```
-    /// # #[cfg(feature = "debug-print")] {
     /// use treena::dynamic::AdoptAs;
     ///
     /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
@@ -857,7 +848,6 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     /// |   |-- 1-1
     /// |   `-- 1-2
     /// `-- 2"#;
-    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
     /// assert_eq!(forest.debug_print(root).to_string(), before);
     ///
     /// let mut node = forest.node_mut(child_1)
@@ -875,13 +865,11 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     /// |   `-- new
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_create);
-    /// # }
     /// ```
     ///
     /// Creating the previous child by [`AdoptAs::PreviousSibling`]:
     ///
     /// ```
-    /// # #[cfg(feature = "debug-print")] {
     /// use treena::dynamic::AdoptAs;
     ///
     /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
@@ -905,7 +893,6 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     /// |   |-- 1-1
     /// |   `-- 1-2
     /// `-- 2"#;
-    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
     /// assert_eq!(forest.debug_print(root).to_string(), before);
     ///
     /// let mut node = forest.node_mut(child_1)
@@ -924,13 +911,11 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     /// |   `-- 1-2
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_create);
-    /// # }
     /// ```
     ///
     /// Creating the previous child by [`AdoptAs::PreviousSibling`]:
     ///
     /// ```
-    /// # #[cfg(feature = "debug-print")] {
     /// use treena::dynamic::AdoptAs;
     ///
     /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
@@ -954,7 +939,6 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     /// |   |-- 1-1
     /// |   `-- 1-2
     /// `-- 2"#;
-    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
     /// assert_eq!(forest.debug_print(root).to_string(), before);
     ///
     /// let mut node = forest.node_mut(child_1)
@@ -973,7 +957,6 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     /// |-- new
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_create);
-    /// # }
     /// ```
     // This won't panic since `self: Node<'_, _>` guarantees that the anchor node is alive.
     #[inline]
@@ -1004,7 +987,6 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     /// `self` node.
     ///
     /// ```
-    /// # #[cfg(feature = "debug-print")] {
     /// use treena::dynamic::AdoptAs;
     ///
     /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
@@ -1037,7 +1019,6 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     /// |   |   `-- 1-1-2
     /// |   `-- 1-2
     /// `-- 2"#;
-    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
     /// assert_eq!(forest.debug_print(root).to_string(), before);
     ///
     /// let mut node = forest.node_mut(child_1)
@@ -1056,7 +1037,6 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     /// |   `-- 1-1-2
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_adopt);
-    /// # }
     /// ```
     pub fn adopt(&mut self, node: Id, dest: AdoptAs) {
         self.try_adopt(node, dest)
@@ -1101,7 +1081,6 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     /// # Examples
     ///
     /// ```
-    /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
     /// # let mut forest = Forest::<NodeIdUsize, _>::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
@@ -1123,7 +1102,6 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     /// |   |-- 1-1
     /// |   `-- 1-2
     /// `-- 2"#;
-    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
     /// assert_eq!(forest.debug_print(root).to_string(), before);
     ///
     /// let mut node = forest.node_mut(child_1)
@@ -1140,7 +1118,6 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     /// `-- 1-2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_detach_root);
     /// assert_eq!(forest.debug_print(child_1).to_string(), after_detach_child_1);
-    /// # }
     /// ```
     #[inline]
     pub fn detach(&mut self) {
@@ -1166,7 +1143,6 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     /// # Examples
     ///
     /// ```
-    /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
     /// # let mut forest = Forest::<NodeIdUsize, _>::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
@@ -1188,7 +1164,6 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     /// |   |-- 1-1
     /// |   `-- 1-2
     /// `-- 2"#;
-    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
     /// assert_eq!(forest.debug_print(root).to_string(), before);
     ///
     /// let mut node = forest.node_mut(child_1)
@@ -1205,7 +1180,6 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     /// let after_detach_child_1 = "1";
     /// assert_eq!(forest.debug_print(root).to_string(), after_detach_root);
     /// assert_eq!(forest.debug_print(child_1).to_string(), after_detach_child_1);
-    /// # }
     /// ```
     #[inline]
     pub fn detach_single(&mut self) -> Result<(), StructureError> {
@@ -1238,7 +1212,6 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     /// # Examples
     ///
     /// ```
-    /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
     /// # let mut forest = Forest::<NodeIdUsize, _>::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
@@ -1267,7 +1240,6 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     /// |   |   `-- 1-1-2
     /// |   `-- 1-2
     /// `-- 2"#;
-    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
     /// assert_eq!(forest.debug_print(root).to_string(), before);
     ///
     /// let mut removed_data = Vec::new();
@@ -1287,7 +1259,6 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_remove);
     /// assert_eq!(removed_data, &["1-1-0", "1-1-1", "1-1-2", "1-1"]);
-    /// # }
     /// ```
     #[inline]
     pub fn remove_hooked_panic_safe<F: FnMut(T)>(self, f: F) {
@@ -1314,7 +1285,6 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     /// # Examples
     ///
     /// ```
-    /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
     /// # let mut forest = Forest::<NodeIdUsize, _>::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
@@ -1343,7 +1313,6 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     /// |   |   `-- 1-1-2
     /// |   `-- 1-2
     /// `-- 2"#;
-    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
     /// assert_eq!(forest.debug_print(root).to_string(), before);
     ///
     /// let mut removed_data = Vec::new();
@@ -1363,7 +1332,6 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_remove);
     /// assert_eq!(removed_data, &["1-1-0", "1-1-1", "1-1-2", "1-1"]);
-    /// # }
     /// ```
     #[inline]
     pub fn remove_hooked<F: FnMut(T)>(self, f: F) {
@@ -1385,7 +1353,6 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     /// # Examples
     ///
     /// ```
-    /// # #[cfg(feature = "debug-print")] {
     /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
     /// # let mut forest = Forest::<NodeIdUsize, _>::new();
     /// # let mut builder = TreeBuilder::new(&mut forest, "root");
@@ -1414,7 +1381,6 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     /// |   |   `-- 1-1-2
     /// |   `-- 1-2
     /// `-- 2"#;
-    /// // NOTE: `.debug_print()` requires `debug-print` feature to be enabled.
     /// assert_eq!(forest.debug_print(root).to_string(), before);
     ///
     /// // Remove "1-1" and its descendant.
@@ -1431,7 +1397,6 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     /// |   `-- 1-2
     /// `-- 2"#;
     /// assert_eq!(forest.debug_print(root).to_string(), after_remove);
-    /// # }
     /// ```
     #[inline]
     pub fn remove(self) {
@@ -1442,10 +1407,6 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
 /// Debug printing.
 impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     /// Returns the pretty-printable proxy object to the node and descendants.
-    ///
-    /// This requires `debug-print` feature to be enabled.
-    #[cfg(feature = "debug-print")]
-    #[cfg_attr(feature = "docsrs", doc(cfg(feature = "debug-print")))]
     pub fn debug_print(&self) -> DebugPrint<'_, Id, T> {
         DebugPrint::new(self.node())
     }

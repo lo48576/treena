@@ -198,7 +198,6 @@ impl fmt::Write for IndentWriter<'_, '_> {
 /// This is provided mainly for debugging purpose. Node that the output format
 /// is not guaranteed to be stable, and any format changes won't be considered
 /// as breaking changes.
-#[cfg_attr(feature = "docsrs", doc(cfg(feature = "debug-print")))]
 pub struct DebugPrint<'a, Id: NodeId, T> {
     /// Root node of the (sub)tree to print.
     node: Node<'a, Id, T>,
