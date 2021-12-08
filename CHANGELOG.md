@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Fixed
+
+* Export `DebugPrint` from `dynamic` module (again)
+    + The name of `DebugPrint` type had became accidentally private.
+
 ## [0.0.4]
 
 * Update document about precondition of `Forest::create_insert` method.
