@@ -1,6 +1,6 @@
 //! Forest.
 
-mod builder;
+mod chain_builder;
 mod debug_print;
 mod node;
 pub(crate) mod traverse;
@@ -15,7 +15,7 @@ use crate::dynamic::hierarchy::traverse::{
 use crate::dynamic::hierarchy::{Hierarchy, Neighbors};
 use crate::dynamic::{InsertAs, InternalNodeId, NodeId, NodeIdExt};
 
-pub use self::builder::TreeBuilder;
+pub use self::chain_builder::ChainTreeBuilder;
 pub use self::debug_print::DebugPrint;
 pub use self::node::{Node, NodeMut};
 
@@ -42,8 +42,8 @@ pub use self::node::{Node, NodeMut};
 ///
 /// There are some ways to construct a tree and/or rebuild trees.
 ///
-/// **[`TreeBuilder`]** let you create a new root node and its descendants at
-/// once. For detail, see the documentation for [`TreeBuilder`].
+/// **[`ChainTreeBuilder`]** let you create a new root node and its descendants
+/// at once. For detail, see the documentation for [`ChainTreeBuilder`].
 ///
 /// **[`Forest::create_root`]** method let you create a new root node.
 /// Note that a forest can have multiple root nodes.
@@ -390,9 +390,9 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// ```
     /// use treena::dynamic::InsertAs;
     ///
-    /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
+    /// # use treena::dynamic::{Forest, NodeIdUsize, ChainTreeBuilder};
     /// # let mut forest = Forest::<NodeIdUsize, _>::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let mut builder = ChainTreeBuilder::new(&mut forest, "root");
     /// # let child_1 = builder
     /// #     .child("0")
     /// #     .sibling("1")
@@ -435,9 +435,9 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// ```
     /// use treena::dynamic::InsertAs;
     ///
-    /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
+    /// # use treena::dynamic::{Forest, NodeIdUsize, ChainTreeBuilder};
     /// # let mut forest = Forest::<NodeIdUsize, _>::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let mut builder = ChainTreeBuilder::new(&mut forest, "root");
     /// # let child_1 = builder
     /// #     .child("0")
     /// #     .sibling("1")
@@ -480,9 +480,9 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// ```
     /// use treena::dynamic::InsertAs;
     ///
-    /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
+    /// # use treena::dynamic::{Forest, NodeIdUsize, ChainTreeBuilder};
     /// # let mut forest = Forest::<NodeIdUsize, _>::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let mut builder = ChainTreeBuilder::new(&mut forest, "root");
     /// # let child_1 = builder
     /// #     .child("0")
     /// #     .sibling("1")
@@ -525,9 +525,9 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// ```
     /// use treena::dynamic::InsertAs;
     ///
-    /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
+    /// # use treena::dynamic::{Forest, NodeIdUsize, ChainTreeBuilder};
     /// # let mut forest = Forest::<NodeIdUsize, _>::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let mut builder = ChainTreeBuilder::new(&mut forest, "root");
     /// # let child_1 = builder
     /// #     .child("0")
     /// #     .sibling("1")
@@ -587,9 +587,9 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// # Examples
     ///
     /// ```
-    /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
+    /// # use treena::dynamic::{Forest, NodeIdUsize, ChainTreeBuilder};
     /// # let mut forest = Forest::<NodeIdUsize, _>::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let mut builder = ChainTreeBuilder::new(&mut forest, "root");
     /// # let child_1 = builder
     /// #     .child("0")
     /// #     .sibling("1")
@@ -647,9 +647,9 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// # Examples
     ///
     /// ```
-    /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
+    /// # use treena::dynamic::{Forest, NodeIdUsize, ChainTreeBuilder};
     /// # let mut forest = Forest::<NodeIdUsize, _>::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let mut builder = ChainTreeBuilder::new(&mut forest, "root");
     /// # let child_1 = builder
     /// #     .child("0")
     /// #     .sibling("1")
@@ -714,9 +714,9 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// # Examples
     ///
     /// ```
-    /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
+    /// # use treena::dynamic::{Forest, NodeIdUsize, ChainTreeBuilder};
     /// # let mut forest = Forest::<NodeIdUsize, _>::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let mut builder = ChainTreeBuilder::new(&mut forest, "root");
     /// # let child_1_1 = builder
     /// #     .child("0")
     /// #     .sibling("1")
@@ -829,9 +829,9 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// # Examples
     ///
     /// ```
-    /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
+    /// # use treena::dynamic::{Forest, NodeIdUsize, ChainTreeBuilder};
     /// # let mut forest = Forest::<NodeIdUsize, _>::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let mut builder = ChainTreeBuilder::new(&mut forest, "root");
     /// # let child_1_1 = builder
     /// #     .child("0")
     /// #     .sibling("1")
@@ -927,9 +927,9 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// # Examples
     ///
     /// ```
-    /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
+    /// # use treena::dynamic::{Forest, NodeIdUsize, ChainTreeBuilder};
     /// # let mut forest = Forest::<NodeIdUsize, _>::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let mut builder = ChainTreeBuilder::new(&mut forest, "root");
     /// # let child_1_1 = builder
     /// #     .child("0")
     /// #     .sibling("1")
@@ -1133,10 +1133,10 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// # Examples
     ///
     /// ```
-    /// use treena::dynamic::{Forest, InsertAs, NodeIdUsize, TreeBuilder};
+    /// use treena::dynamic::{Forest, InsertAs, NodeIdUsize, ChainTreeBuilder};
     ///
     /// let mut forest = Forest::<NodeIdUsize, _>::new();
-    /// let root = TreeBuilder::new(&mut forest, "root")
+    /// let root = ChainTreeBuilder::new(&mut forest, "root")
     ///     .child("0")
     ///     .child("0-0")
     ///     .child("0-0-0")
@@ -1204,10 +1204,10 @@ impl<Id: NodeId, T> Forest<Id, T> {
     /// # Examples
     ///
     /// ```
-    /// use treena::dynamic::{Forest, InsertAs, NodeIdUsize, TreeBuilder};
+    /// use treena::dynamic::{Forest, InsertAs, NodeIdUsize, ChainTreeBuilder};
     ///
     /// let mut forest = Forest::<NodeIdUsize, _>::new();
-    /// let root = TreeBuilder::new(&mut forest, "root")
+    /// let root = ChainTreeBuilder::new(&mut forest, "root")
     ///     .child("0")
     ///     .child("0-0")
     ///     .child("0-0-0")
@@ -1507,9 +1507,9 @@ impl<Id: NodeId, T: Clone> Forest<Id, T> {
     /// # Examples
     ///
     /// ```
-    /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
+    /// # use treena::dynamic::{Forest, NodeIdUsize, ChainTreeBuilder};
     /// # let mut forest = Forest::<NodeIdUsize, _>::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let mut builder = ChainTreeBuilder::new(&mut forest, "root");
     /// # let child_1 = builder
     /// #     .child("0")
     /// #     .sibling("1")
@@ -1558,9 +1558,9 @@ impl<Id: NodeId, T: Clone> Forest<Id, T> {
     /// # Examples
     ///
     /// ```
-    /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
+    /// # use treena::dynamic::{Forest, NodeIdUsize, ChainTreeBuilder};
     /// # let mut forest_src = Forest::<NodeIdUsize, _>::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest_src, "root");
+    /// # let mut builder = ChainTreeBuilder::new(&mut forest_src, "root");
     /// # let child_1 = builder
     /// #     .child("0")
     /// #     .sibling("1")
@@ -1612,9 +1612,9 @@ impl<Id: NodeId, T: Clone> Forest<Id, T> {
     /// # Examples
     ///
     /// ```
-    /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
+    /// # use treena::dynamic::{Forest, NodeIdUsize, ChainTreeBuilder};
     /// # let mut forest = Forest::<NodeIdUsize, _>::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest, "root");
+    /// # let mut builder = ChainTreeBuilder::new(&mut forest, "root");
     /// # let child_1 = builder
     /// #     .child("0")
     /// #     .sibling("1")
@@ -1746,9 +1746,9 @@ impl<Id: NodeId, T: Clone> Forest<Id, T> {
     /// # Examples
     ///
     /// ```
-    /// # use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
+    /// # use treena::dynamic::{Forest, NodeIdUsize, ChainTreeBuilder};
     /// # let mut forest_src = Forest::<NodeIdUsize, _>::new();
-    /// # let mut builder = TreeBuilder::new(&mut forest_src, "root");
+    /// # let mut builder = ChainTreeBuilder::new(&mut forest_src, "root");
     /// # let child_1 = builder
     /// #     .child("0")
     /// #     .sibling("1")
