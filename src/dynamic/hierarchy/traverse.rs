@@ -6,7 +6,7 @@ use crate::dynamic::hierarchy::Hierarchy;
 use crate::dynamic::InternalNodeId;
 use crate::nonmax::NonMaxUsize;
 
-/// Depth-first traverseal event.
+/// Depth-first traversal event.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum DftEvent<Id> {
     /// Node open.
