@@ -84,9 +84,7 @@ pub use self::forest::traverse::{
     AllocatingBreadthFirstTraverse, Ancestors, BreadthFirstTraverse, DepthFirstTraverse, DftEvent,
     ShallowDepthFirstTraverse, Siblings,
 };
-#[cfg(any(feature = "debug-print"))]
-pub use self::forest::DebugPrint;
-pub use self::forest::{Forest, Node, NodeMut, StructureError, TreeBuilder};
+pub use self::forest::{DebugPrint, Forest, Node, NodeMut, StructureError, TreeBuilder};
 use self::id::NodeIdExt;
 pub use self::id::{
     InternalNodeId, NodeId, NodeIdU16, NodeIdU32, NodeIdU64, NodeIdU8, NodeIdUsize,
