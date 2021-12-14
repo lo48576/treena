@@ -1,6 +1,6 @@
 # Treena
 
-[![Build Status](https://gitlab.com/lo48576/treena/badges/develop/pipeline.svg)](https://gitlab.com/lo48576/treena/pipelines/)
+[![Build Status](https://gitlab.com/nop_thread/treena/badges/develop/pipeline.svg)](https://gitlab.com/nop_thread/treena/pipelines/)
 [![Latest version](https://img.shields.io/crates/v/treena.svg)](https://crates.io/crates/treena)
 [![Documentation](https://docs.rs/treena/badge.svg)](https://docs.rs/treena)
 ![Minimum supported rustc version: 1.56](https://img.shields.io/badge/rustc-1.56+-lightgray.svg)
