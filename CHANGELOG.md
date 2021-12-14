@@ -89,8 +89,8 @@
 
 Initial release.
 
-[Unreleased]: <https://gitlab.com/lo48576/treena/-/compare/v0.0.4...develop>
-[0.0.4]: <https://gitlab.com/lo48576/treena/-/tags/v0.0.4>
-[0.0.3]: <https://gitlab.com/lo48576/treena/-/tags/v0.0.3>
-[0.0.2]: <https://gitlab.com/lo48576/treena/-/tags/v0.0.2>
-[0.0.1]: <https://gitlab.com/lo48576/treena/-/tags/v0.0.1>
+[Unreleased]: <https://gitlab.com/nop_thread/treena/-/compare/v0.0.4...develop>
+[0.0.4]: <https://gitlab.com/nop_thread/treena/-/tags/v0.0.4>
+[0.0.3]: <https://gitlab.com/nop_thread/treena/-/tags/v0.0.3>
+[0.0.2]: <https://gitlab.com/nop_thread/treena/-/tags/v0.0.2>
+[0.0.1]: <https://gitlab.com/nop_thread/treena/-/tags/v0.0.1>
