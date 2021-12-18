@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+* Rename `dynamic::forest::TreeBuilder` to `ChainTreeBuilder`
+* Add `dynamic::forest::NestTreeBuilder`.
+
+### Added
+
+* Add `dynamic::forest::NestTreeBuilder`.
+
+### Changed (breaking)
+
+* Rename `dynamic::forest::TreeBuilder` to `ChainTreeBuilder`.
+
 ### Fixed
 
 * Export `DebugPrint` from `dynamic` module (again)
