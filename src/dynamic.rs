@@ -84,7 +84,9 @@ pub use self::forest::traverse::{
     AllocatingBreadthFirstTraverse, Ancestors, BreadthFirstTraverse, DepthFirstTraverse, DftEvent,
     ShallowDepthFirstTraverse, Siblings,
 };
-pub use self::forest::{DebugPrint, Forest, Node, NodeMut, StructureError, TreeBuilder};
+pub use self::forest::{
+    ChainTreeBuilder, DebugPrint, Forest, NestTreeBuilder, Node, NodeMut, StructureError,
+};
 use self::id::NodeIdExt;
 pub use self::id::{
     InternalNodeId, NodeId, NodeIdU16, NodeIdU32, NodeIdU64, NodeIdU8, NodeIdUsize,

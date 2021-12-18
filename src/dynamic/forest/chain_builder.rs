@@ -1,20 +1,20 @@
-//! Tree and forest builder.
+//! Chain-style tree and forest builder.
 
 use crate::dynamic::forest::Forest;
 use crate::dynamic::{InsertAs, NodeId};
 
-/// Tree builder.
+/// Chain-style tree builder.
 ///
-/// `TreeBuilder` remembers "the current node".
+/// `ChainTreeBuilder` remembers "the current node".
 ///
-/// * [`TreeBuilder::child()`][`TreeBuilder::child`] creates a new child node
+/// * [`ChainTreeBuilder::child()`][`ChainTreeBuilder::child`] creates a new child node
 ///   (as the last child) to the current node.
-/// * [`TreeBuilder::sibling()`][`TreeBuilder::sibling`] creates a new next
+/// * [`ChainTreeBuilder::sibling()`][`ChainTreeBuilder::sibling`] creates a new next
 ///   sibling of the current node.
-/// * [`TreeBuilder::parent()`][`TreeBuilder::parent`] makes the parent the new current node.
+/// * [`ChainTreeBuilder::parent()`][`ChainTreeBuilder::parent`] makes the parent the new current node.
 ///
-/// [`TreeBuilder::root_id()`][`TreeBuilder::root_id`] returns the root node ID,
-/// and [`TreeBuilder::current_id()`][`TreeBuilder::current_id`] returns the
+/// [`ChainTreeBuilder::root_id()`][`ChainTreeBuilder::root_id`] returns the root node ID,
+/// and [`ChainTreeBuilder::current_id()`][`ChainTreeBuilder::current_id`] returns the
 /// node ID of the current node.
 ///
 /// # Examples
@@ -23,10 +23,10 @@ use crate::dynamic::{InsertAs, NodeId};
 ///
 /// ```
 /// # use treena::dynamic::DftEvent;
-/// use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
+/// use treena::dynamic::{Forest, NodeIdUsize, ChainTreeBuilder};
 ///
 /// let mut forest: Forest<NodeIdUsize, &'static str> = Forest::new();
-/// let mut builder = TreeBuilder::new(&mut forest, "root");
+/// let mut builder = ChainTreeBuilder::new(&mut forest, "root");
 /// builder
 ///     .child("0")
 ///     .child("0-0")
@@ -91,10 +91,10 @@ use crate::dynamic::{InsertAs, NodeId};
 ///
 /// ```
 /// # use treena::dynamic::DftEvent;
-/// use treena::dynamic::{Forest, NodeIdUsize, TreeBuilder};
+/// use treena::dynamic::{Forest, NodeIdUsize, ChainTreeBuilder};
 ///
 /// let mut forest = Forest::<NodeIdUsize, _>::new();
-/// let root = TreeBuilder::new(&mut forest, "root")
+/// let root = ChainTreeBuilder::new(&mut forest, "root")
 ///     .child("0")
 ///     .child("0-0")
 ///     .child("0-0-0")
@@ -148,7 +148,7 @@ use crate::dynamic::{InsertAs, NodeId};
 /// # );
 /// ```
 #[derive(Debug)]
-pub struct TreeBuilder<'a, Id: NodeId, T> {
+pub struct ChainTreeBuilder<'a, Id: NodeId, T> {
     /// Target forest.
     forest: &'a mut Forest<Id, T>,
     /// Node ID of the root node.
@@ -157,7 +157,7 @@ pub struct TreeBuilder<'a, Id: NodeId, T> {
     current: Id,
 }
 
-impl<'a, Id: NodeId, T> TreeBuilder<'a, Id, T> {
+impl<'a, Id: NodeId, T> ChainTreeBuilder<'a, Id, T> {
     /// Creates a root node and the tree builder for the root node.
     pub fn new(forest: &'a mut Forest<Id, T>, root_data: T) -> Self {
         let root = forest.create_root(root_data);
