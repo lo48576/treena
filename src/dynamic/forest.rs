@@ -2,6 +2,7 @@
 
 mod chain_builder;
 mod debug_print;
+mod nest_builder;
 mod node;
 pub(crate) mod traverse;
 
@@ -17,6 +18,7 @@ use crate::dynamic::{InsertAs, InternalNodeId, NodeId, NodeIdExt};
 
 pub use self::chain_builder::ChainTreeBuilder;
 pub use self::debug_print::DebugPrint;
+pub use self::nest_builder::NestTreeBuilder;
 pub use self::node::{Node, NodeMut};
 
 /// Forest.
