@@ -1,6 +1,6 @@
 //! Tree and forest builder.
 
-use std::mem;
+use core::mem;
 
 use crate::dynamic::forest::Forest;
 use crate::dynamic::{InsertAs, NodeId};
