@@ -767,7 +767,7 @@ impl<Id: NodeId, T> Forest<Id, T> {
         /// in order to reduce monomorphization and prevent binary bloat.
         fn inner<InternalId: InternalNodeId, T, F: FnMut(T)>(
             hierarchy: &mut Hierarchy<InternalId>,
-            data: &mut Vec<Option<T>>,
+            data: &mut [Option<T>],
             node: InternalId,
             mut f: F,
         ) {
@@ -882,7 +882,7 @@ impl<Id: NodeId, T> Forest<Id, T> {
         /// in order to reduce monomorphization and prevent binary bloat.
         fn inner<InternalId: InternalNodeId, T, F: FnMut(T)>(
             hierarchy: &mut Hierarchy<InternalId>,
-            data: &mut Vec<Option<T>>,
+            data: &mut [Option<T>],
             node: InternalId,
             mut f: F,
         ) {
