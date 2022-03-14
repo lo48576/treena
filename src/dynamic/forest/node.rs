@@ -975,6 +975,9 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     ///
     /// * Panics if `self` and `node` is the identical node.
     ///     + A node cannot be the neighbor of itself.
+    /// * Panics if `node` is `self` itself or its ancestor while
+    ///   `dest` is `FirstChild` or `LastChild`.
+    ///     + An ancestor cannot be adopted as its descendant.
     /// * Panics if neither `self` nor `node` is alive.
     ///     + Removed or nonexistent nodes cannot be manipulated.
     /// * Panics if `self` does not have a parent while `dest` is
@@ -1049,7 +1052,7 @@ impl<'a, Id: NodeId, T> NodeMut<'a, Id, T> {
     ///
     /// * [`StructureError::AncestorDescendantLoop`]
     ///     + In case `dest` is `FirstChild` or `LastChild`, and
-    ///       `self` and `node` are identical.
+    ///       `node` is `self` itself or its ancestor.
     /// * [`StructureError::UnorderableSiblings`]
     ///     + In case `dest` is `PreviousSibling` or `NextSibling`, and
     ///       `self` and `node` are identical.
@@ -1472,7 +1475,8 @@ mod tests {
                 ]
             );
 
-            // Re-insert the "new" node to the same position (i.e. do nothing).
+            // Re-insert the "new" node to the same position (i.e. conceptually
+            // do nothing).
             forest
                 .insert(new, InsertAs::FirstChildOf(root))
                 .expect("changing nothing should succeed");
