@@ -1472,7 +1472,8 @@ mod tests {
                 ]
             );
 
-            // Re-insert the "new" node to the same position (i.e. do nothing).
+            // Re-insert the "new" node to the same position (i.e. conceptually
+            // do nothing).
             forest
                 .insert(new, InsertAs::FirstChildOf(root))
                 .expect("changing nothing should succeed");
