@@ -7,6 +7,7 @@ use core::fmt;
 use alloc::vec::Vec;
 
 use crate::dynamic::forest::StructureError;
+use crate::dynamic::hierarchy::traverse::AncestorsTraverser;
 use crate::dynamic::{InsertAs, InternalNodeId};
 
 /// A forest without custom data tied to nodes.
@@ -365,7 +366,7 @@ impl<Id: InternalNodeId> Hierarchy<Id> {
     /// # Errors
     ///
     /// Returns [`StructureError::AncestorDescendantLoop`] error when
-    /// `new_first_child` and `parent` are identical.
+    /// `new_first_child` is `parent` or its ancestor.
     ///
     /// # Panics
     ///
@@ -388,7 +389,7 @@ impl<Id: InternalNodeId> Hierarchy<Id> {
     /// # Errors
     ///
     /// Returns [`StructureError::AncestorDescendantLoop`] error when
-    /// `new_last_child` and `parent` are identical.
+    /// `new_last_child` is `parent` or its ancestor.
     ///
     /// # Panics
     ///
@@ -778,6 +779,11 @@ impl<Id: InternalNodeId> SiblingsRange<Id> {
     /// PREV_OF_FIRST -> NEXT_OF_LAST
     /// ```
     ///
+    /// # Failures
+    ///
+    /// * Returns `Err(StructureError::AncestorDescendantLoop)` if the `parent`
+    ///   is a descendant of the node in the range.
+    ///
     /// # Panics
     ///
     /// * Panics if the `parent`, `prev_sibling`, or `next_sibling` is not alive.
@@ -791,6 +797,11 @@ impl<Id: InternalNodeId> SiblingsRange<Id> {
         prev_sibling: Option<Id>,
         next_sibling: Option<Id>,
     ) -> Result<(), StructureError> {
+        // Detect possible ancestor-descendant loop beforehand.
+        if self.transplant_would_make_cyclic_links(hier, parent) {
+            return Err(StructureError::AncestorDescendantLoop);
+        }
+
         // Detach the nodes.
         {
             let first_nbs = hier
@@ -810,9 +821,10 @@ impl<Id: InternalNodeId> SiblingsRange<Id> {
         {
             let mut child_opt = Some(self.first);
             while let Some(child) = child_opt {
-                if child == parent {
-                    return Err(StructureError::AncestorDescendantLoop);
-                }
+                assert_ne!(
+                    child, parent,
+                    "[consistency] possibility of ancestor-descendant loop is already tested"
+                );
                 let child_nbs = hier
                     .neighbors_mut(child)
                     .expect("[consistency] nodes in the range must be alive");
@@ -837,5 +849,86 @@ impl<Id: InternalNodeId> SiblingsRange<Id> {
         }
 
         Ok(())
+    }
+
+    /// Returns true if `transplant()` would create cyclic links.
+    fn transplant_would_make_cyclic_links(&self, hier: &Hierarchy<Id>, parent: Id) -> bool {
+        let first_nbs = hier
+            .neighbors(self.first)
+            .expect("[consistency] nodes in the range must be alive");
+
+        if self.first == self.last {
+            let range_root = self.first;
+
+            let mut ancestors = AncestorsTraverser::with_start(parent, hier);
+            while let Some(ancestor) = ancestors.next(hier) {
+                if ancestor == range_root {
+                    // `parent` is a descendant node of the range root.
+                    return true;
+                }
+            }
+        } else {
+            // Every tree in the hierarchy has root node. So, if the toplevel
+            // nodes in the range don't have parent, then it means the range
+            // consists of single toplevel node. Such case is already handled
+            // by `self.first == self.last` branch.
+            let range_parent = first_nbs
+                .parent()
+                .expect("[consistency] range with multiple toplevel nodes must have a parent");
+            if range_parent == parent {
+                // The range will be transplanted under the same parent again.
+                return false;
+            }
+
+            let mut ancestors = AncestorsTraverser::with_start(parent, hier);
+            // Initially `prev_ancestor` is `parent`.
+            let mut prev_ancestor = ancestors
+                .next(hier)
+                .expect("[validity] start node itself must be iterated");
+            while let Some(ancestor) = ancestors.next(hier) {
+                if ancestor != range_parent {
+                    continue;
+                }
+                //  root:range_parent
+                //  |-- 0
+                //  |   `-- 0-0:parent
+                //  |-- 1
+                //  |-- 2
+                //  `-- 3
+                //
+                // Consider transplanting [1,2] under 0-0. This should be valid.
+                //
+                //  root
+                //  |-- 0
+                //  |   `-- 0-0
+                //  |       |-- 1
+                //  |       `-- 2
+                //  `-- 3
+                //
+                // `range_parent` is an ancestor of `parent`, but `parent` is
+                // not the descendant of the range [1, 2].
+                // Detect such case here.
+                // In this example, `ancestor` now refers `root` and
+                // `prev_ancestor` refers `0`.
+                let mut current = Some(self.first);
+                while let Some(toplevel) = current {
+                    if toplevel == prev_ancestor {
+                        // `parent` is a descendant of `toplevel`.
+                        return true;
+                    }
+                    if toplevel == self.last {
+                        break;
+                    }
+                    current = hier
+                        .neighbors(toplevel)
+                        .expect("[consistency] nodes in the range must be alive")
+                        .next_sibling();
+                }
+
+                prev_ancestor = ancestor;
+            }
+        }
+
+        false
     }
 }
