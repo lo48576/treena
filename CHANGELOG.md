@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+## [0.0.5]
+
+* Rename `dynamic::forest::TreeBuilder` to `ChainTreeBuilder`
+* Add `dynamic::forest::NestTreeBuilder`.
+* Let insertions fail when they attempt to make ancestor-descendant loops.
+
+### Added
+
+* Add `dynamic::forest::NestTreeBuilder`.
+
+### Changed (breaking)
+
+* Rename `dynamic::forest::TreeBuilder` to `ChainTreeBuilder`.
+
+### Fixed
+
+* Export `DebugPrint` from `dynamic` module (again)
+    + The name of `DebugPrint` type had became accidentally private.
+* Let insertions fail when they attempt to make ancestor-descendant loops.
+
 ## [0.0.4]
 
 * Update document about precondition of `Forest::create_insert` method.
@@ -10,6 +30,17 @@
 * Internal improvements.
     + Pre-monomorphize methods of `Forest` and related types, in order to reduce
       code bloat.
+
+### Changed (breaking)
+
+* Remove `debug-print` feature.
+    + Related items are now always available without any additional features.
+    + The feature is removed since it pulls no additional dependencies and
+      considered bothersome rather than useful.
+    + Original intention of the flag is to make the feature semi-experimental,
+      since the output format is not guaranteed to be stable. However, many
+      types does not guarantee the stableness of `Display` and `Debug`
+      formatting explicitly, so this is not considered worth doing.
 
 ### Changed (non-breaking)
 
@@ -20,14 +51,6 @@
       internal consistency error, but now it is shown as precondition violation.
     + This is only documentation and message refinement. Panic condition is
       actually not changed.
-* Remove `debug-print` feature.
-    + Related items are now always available without any additional features.
-    + The feature is removed since it pulls no additional dependencies and
-      considered bothersome rather than useful.
-    + Original intention of the flag is to make the feature semi-experimental,
-      since the output format is not guaranteed to be stable. However, many
-      types does not guarantee the stableness of `Display` and `Debug`
-      formatting explicitly, so this is not considered worth doing.
 * Internal improvements.
     + Pre-monomorphize methods of `Forest` and related types, in order to reduce
       code bloat.
@@ -81,8 +104,9 @@
 
 Initial release.
 
-[Unreleased]: <https://gitlab.com/lo48576/treena/-/compare/v0.0.4...develop>
-[0.0.4]: <https://gitlab.com/lo48576/treena/-/tags/v0.0.4>
-[0.0.3]: <https://gitlab.com/lo48576/treena/-/tags/v0.0.3>
-[0.0.2]: <https://gitlab.com/lo48576/treena/-/tags/v0.0.2>
-[0.0.1]: <https://gitlab.com/lo48576/treena/-/tags/v0.0.1>
+[Unreleased]: <https://gitlab.com/nop_thread/treena/-/compare/v0.0.5...develop>
+[0.0.5]: <https://gitlab.com/nop_thread/treena/-/tags/v0.0.5>
+[0.0.4]: <https://gitlab.com/nop_thread/treena/-/tags/v0.0.4>
+[0.0.3]: <https://gitlab.com/nop_thread/treena/-/tags/v0.0.3>
+[0.0.2]: <https://gitlab.com/nop_thread/treena/-/tags/v0.0.2>
+[0.0.1]: <https://gitlab.com/nop_thread/treena/-/tags/v0.0.1>

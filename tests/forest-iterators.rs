@@ -2,7 +2,7 @@
 
 use core::mem;
 
-use treena::dynamic::{DftEvent, Forest, Node, NodeIdUsize, TreeBuilder};
+use treena::dynamic::{ChainTreeBuilder, DftEvent, Forest, Node, NodeIdUsize};
 
 /// Returns the sample tree as a forest and the root node ID.
 ///
@@ -27,7 +27,7 @@ use treena::dynamic::{DftEvent, Forest, Node, NodeIdUsize, TreeBuilder};
 /// ```
 fn sample_tree() -> (Forest<NodeIdUsize, &'static str>, NodeIdUsize) {
     let mut forest = Forest::new();
-    let root = TreeBuilder::new(&mut forest, "root")
+    let root = ChainTreeBuilder::new(&mut forest, "root")
         .child("0")
         .child("0-0")
         .sibling("0-1")

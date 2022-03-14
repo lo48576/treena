@@ -1,13 +1,13 @@
 [package]
 name = "treena"
-version = "0.0.4"
-authors = ["YOSHIOKA Takuma <lo48576@hard-wi.red>"]
+version = "0.0.5"
+authors = ["YOSHIOKA Takuma <nop_thread@nops.red>"]
 edition = "2021"
 rust-version = "1.56"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 description = "Tree stored in an arena"
-repository = "https://gitlab.com/lo48576/treena"
+repository = "https://gitlab.com/nop_thread/treena"
 keywords = ["arena", "tree"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -32,4 +32,4 @@ std = []
 
 [badges]
 maintenance = { status = "experimental" }
-gitlab = { repository = "lo48576/treena", branch = "master" }
+gitlab = { repository = "nop_thread/treena", branch = "master" }
