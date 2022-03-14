@@ -370,7 +370,6 @@ impl<Id: InternalNodeId> Hierarchy<Id> {
     /// # Panics
     ///
     /// Panics if any of the given nodes are not alive.
-    /// Panics if the `new_first_child` does not have a parent.
     fn prepend_child(&mut self, new_first_child: Id, parent: Id) -> Result<(), StructureError> {
         let old_first_child = self
             .neighbors(parent)
@@ -394,7 +393,6 @@ impl<Id: InternalNodeId> Hierarchy<Id> {
     /// # Panics
     ///
     /// Panics if any of the given nodes are not alive.
-    /// Panics if the `new_last_child` does not have a parent.
     fn append_child(&mut self, new_last_child: Id, parent: Id) -> Result<(), StructureError> {
         let old_last_child = self
             .neighbors(parent)
