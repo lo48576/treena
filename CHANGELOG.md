@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.0.5]
+
 * Rename `dynamic::forest::TreeBuilder` to `ChainTreeBuilder`
 * Add `dynamic::forest::NestTreeBuilder`.
 * Let insertions fail when they attempt to make ancestor-descendant loops.
@@ -102,7 +104,8 @@
 
 Initial release.
 
-[Unreleased]: <https://gitlab.com/nop_thread/treena/-/compare/v0.0.4...develop>
+[Unreleased]: <https://gitlab.com/nop_thread/treena/-/compare/v0.0.5...develop>
+[0.0.5]: <https://gitlab.com/nop_thread/treena/-/tags/v0.0.5>
 [0.0.4]: <https://gitlab.com/nop_thread/treena/-/tags/v0.0.4>
 [0.0.3]: <https://gitlab.com/nop_thread/treena/-/tags/v0.0.3>
 [0.0.2]: <https://gitlab.com/nop_thread/treena/-/tags/v0.0.2>
