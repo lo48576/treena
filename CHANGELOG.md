@@ -4,6 +4,7 @@
 
 * Rename `dynamic::forest::TreeBuilder` to `ChainTreeBuilder`
 * Add `dynamic::forest::NestTreeBuilder`.
+* Let insertions fail when they attempt to make ancestor-descendant loops.
 
 ### Added
 
@@ -17,6 +18,7 @@
 
 * Export `DebugPrint` from `dynamic` module (again)
     + The name of `DebugPrint` type had became accidentally private.
+* Let insertions fail when they attempt to make ancestor-descendant loops.
 
 ## [0.0.4]
 
